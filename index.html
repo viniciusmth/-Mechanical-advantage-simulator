@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SIMUS-VM PRO | Simulador de Vantagem Mecânica</title>
+    <title>Simulador de Vantagem Mecânica</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,7 +12,6 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
 
-    <!-- Bibliotecas de Autenticação e Fingerprint -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
 
@@ -54,6 +53,7 @@
 
         ::-webkit-scrollbar {
             width: 4px;
+            height: 4px;
         }
 
         ::-webkit-scrollbar-track {
@@ -89,7 +89,6 @@
             border-color: rgba(59, 130, 246, 0.3);
         }
 
-        /* Spinner do botão de login */
         .loader {
             border: 3px solid rgba(59, 130, 246, 0.2);
             border-left-color: #3b82f6;
@@ -114,7 +113,6 @@
 
 <body class="bg-rescue-950 text-slate-200 font-sans h-screen flex flex-col relative">
 
-    <!-- TELA DE LOGIN (Sobrepõe o sistema) -->
     <div id="loginScreen" class="absolute inset-0 z-50 bg-[#070a12] flex items-center justify-center">
         <div class="glass-panel p-8 rounded-2xl shadow-2xl max-w-sm w-full mx-4">
             <div class="text-center mb-6">
@@ -122,7 +120,7 @@
                     class="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-rescue-orange flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20 text-2xl">
                     <i class="fa-solid fa-truck-medical"></i>
                 </div>
-                <h1 class="text-xl font-bold tracking-wide text-white">SIMUS-VM PRO</h1>
+                <h1 class="text-xl font-bold tracking-wide text-white">Simulador de Vantagem Mecânica</h1>
                 <p class="text-[11px] text-slate-400 mt-1 uppercase tracking-widest">Acesso Autenticado</p>
             </div>
 
@@ -152,79 +150,85 @@
             </form>
             <div
                 class="mt-5 text-center flex flex-col gap-1 text-[9px] text-slate-500 uppercase tracking-wider font-mono">
-                <span><i class="fa-solid fa-microchip"></i> Fingerprint Protection Active</span>
-                <span><i class="fa-solid fa-shield-halved"></i> Single Session Enforced</span>
+                <span><i class="fa-solid fa-wand-magic-sparkles"></i> A PRÁTICA LEVA À PERFEIÇÃO</span>
             </div>
         </div>
     </div>
 
-    <!-- SISTEMA (Oculto até o login) -->
     <div id="appContainer" class="hidden flex-col h-screen w-full">
         <header class="glass-panel border-b border-rescue-800 flex flex-col z-20 shrink-0 shadow-2xl relative">
-            <div class="flex flex-wrap items-center justify-between px-5 py-3 gap-3">
-                <div class="flex items-center gap-3">
+            <div class="flex flex-wrap md:flex-nowrap items-center justify-between px-3 md:px-5 py-3 gap-3">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <button id="mobileMenuBtn"
+                        class="md:hidden p-2 bg-rescue-800/50 rounded-lg text-slate-300 hover:text-white transition">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
                     <div
-                        class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-rescue-orange flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20 text-lg">
+                        class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-rescue-orange hidden md:flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20 text-lg shrink-0">
                         <i class="fa-solid fa-truck-medical"></i>
                     </div>
-                    <div>
-                        <h1 class="font-bold text-sm tracking-wide flex items-center gap-2 text-white">
-                            SIMUS-VM PRO <span
-                                class="text-[9px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-widest font-mono">Analytics</span>
+                    <div class="flex-1">
+                        <h1
+                            class="font-bold text-xs md:text-sm tracking-wide flex items-center gap-2 text-white truncate">
+                            Simulador VM <span
+                                class="hidden sm:inline-block text-[9px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-widest font-mono">Analytics</span>
                         </h1>
-                        <p class="text-[11px] text-slate-400">Arraste para mover • <kbd
-                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[10px]">Scroll</kbd>
+                        <p class="text-[10px] md:text-[11px] text-slate-400 truncate">Arraste p/ mover • <kbd
+                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[9px] md:text-[10px]">Scroll</kbd>
                             Zoom • <kbd
-                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[10px]">DEL</kbd>
-                            Excluir</p>
+                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[9px] md:text-[10px]">DEL</kbd>
+                        </p>
                     </div>
                 </div>
 
                 <div
-                    class="flex items-center gap-2 md:gap-4 text-sm font-mono bg-rescue-950/80 px-4 py-2 rounded-2xl border border-rescue-800/80 shadow-inner overflow-x-auto">
-                    <div class="flex flex-col items-center px-2">
-                        <span class="text-slate-500 text-[10px] uppercase tracking-wider font-sans">Carga (kg)</span>
+                    class="flex items-center gap-2 md:gap-4 text-sm font-mono bg-rescue-950/80 px-2 py-2 rounded-2xl border border-rescue-800/80 shadow-inner overflow-x-auto w-full md:w-auto shrink-0 scrollbar-hide">
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span
+                            class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">Carga</span>
                         <input id="inputWeight" type="number" value="100"
-                            class="w-14 bg-transparent text-center text-white font-bold focus:outline-none focus:text-rescue-blue transition-colors">
+                            class="w-10 md:w-14 bg-transparent text-center text-white font-bold focus:outline-none focus:text-rescue-blue transition-colors text-xs md:text-sm">
                     </div>
                     <div class="w-px h-6 bg-rescue-800"></div>
-                    <div class="flex flex-col items-center px-2">
-                        <span class="text-slate-500 text-[10px] uppercase tracking-wider font-sans">MA Teórico</span>
-                        <span id="uiTheoMA" class="text-blue-400 font-bold">1:1</span>
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">MA
+                            Teó.</span>
+                        <span id="uiTheoMA" class="text-blue-400 font-bold text-xs md:text-sm">1:1</span>
                     </div>
                     <div class="w-px h-6 bg-rescue-800"></div>
-                    <div class="flex flex-col items-center px-2">
-                        <span class="text-slate-500 text-[10px] uppercase tracking-wider font-sans">MA Real
-                            (-10%)</span>
-                        <span id="uiRealMA" class="text-rescue-orange font-bold">1.0:1</span>
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">MA
+                            Real</span>
+                        <span id="uiRealMA" class="text-rescue-orange font-bold text-xs md:text-sm">1.0:1</span>
                     </div>
                     <div class="w-px h-6 bg-rescue-800"></div>
-                    <div class="flex flex-col items-center px-2">
-                        <span class="text-slate-500 text-[10px] uppercase tracking-wider font-sans">Tração Nec.</span>
-                        <span id="uiForce" class="text-red-400 font-bold">100.0 kgf</span>
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span
+                            class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">Tração</span>
+                        <span id="uiForce" class="text-red-400 font-bold text-xs md:text-sm">100.0</span>
                     </div>
                     <div class="w-px h-6 bg-rescue-800"></div>
-                    <div class="flex flex-col items-center px-2" title="Estado da Captura de Progresso">
-                        <span class="text-slate-500 text-[10px] uppercase tracking-wider font-sans">Trava</span>
-                        <span id="uiLock" class="text-red-500 font-bold text-base"><i
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span
+                            class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">Trava</span>
+                        <span id="uiLock" class="text-red-500 font-bold text-sm md:text-base"><i
                                 class="fa-solid fa-unlock"></i></span>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2.5">
+                <div class="flex items-center gap-1.5 md:gap-2.5 w-full md:w-auto justify-end overflow-x-auto shrink-0">
                     <label
-                        class="flex items-center gap-2 cursor-pointer text-xs font-semibold bg-rescue-800/40 px-3 py-1.5 rounded-xl border border-rescue-700/60 hover:bg-rescue-800 transition shadow-sm">
-                        <input type="checkbox" id="toggleTMethod" class="accent-rescue-blue w-3.5 h-3.5 rounded"
-                            checked>
+                        class="flex items-center gap-1.5 cursor-pointer text-[10px] md:text-xs font-semibold bg-rescue-800/40 px-2 py-1 md:px-3 md:py-1.5 rounded-xl border border-rescue-700/60 hover:bg-rescue-800 transition shadow-sm whitespace-nowrap">
+                        <input type="checkbox" id="toggleTMethod"
+                            class="accent-rescue-blue w-3 h-3 md:w-3.5 md:h-3.5 rounded" checked>
                         <span>Método-T</span>
                     </label>
                     <button id="btnResetStroke"
-                        class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[11px] font-bold transition flex items-center gap-2 shadow-sm">
-                        <i class="fa-solid fa-arrow-down-up-across-line"></i> Resetar Curso
+                        class="px-2 py-1 md:px-3 md:py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] md:text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                        <i class="fa-solid fa-arrow-down-up-across-line"></i> Reset
                     </button>
-                    <!-- NOVO BOTÃO SAIR NO HEADER -->
                     <button id="btnSair"
-                        class="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold transition flex items-center gap-2 shadow-sm ml-1">
+                        class="px-2 py-1 md:px-3 md:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] md:text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
                         <i class="fa-solid fa-right-from-bracket"></i> Sair
                     </button>
                 </div>
@@ -232,9 +236,16 @@
         </header>
 
         <div class="flex-1 flex overflow-hidden relative">
-            <aside
-                class="w-80 glass-panel border-r border-rescue-800 flex flex-col z-10 shadow-2xl shrink-0 overflow-y-auto">
-                <div class="p-4 border-b border-rescue-800/60">
+            <div id="mobileOverlay" class="hidden md:hidden fixed inset-0 bg-black/60 z-40 transition-opacity"></div>
+
+            <aside id="sidebar"
+                class="fixed md:relative left-0 top-0 h-full w-72 md:w-80 glass-panel border-r border-rescue-800 flex flex-col z-50 shadow-2xl shrink-0 overflow-y-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+                <button id="closeMenuBtn"
+                    class="md:hidden absolute top-4 right-4 text-slate-400 hover:text-white bg-rescue-800/50 rounded-full w-8 h-8 flex items-center justify-center">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+
+                <div class="p-4 pt-12 md:pt-4 border-b border-rescue-800/60">
                     <div class="flex gap-1.5 mb-3 bg-rescue-950/60 p-1 rounded-xl border border-rescue-800/50">
                         <button id="toolSelect"
                             class="tool-btn active flex-1 py-1.5 text-xs font-semibold rounded-lg border border-transparent text-slate-300 transition flex items-center justify-center gap-1.5"
@@ -284,7 +295,7 @@
                     </div>
                 </div>
 
-                <div class="p-4 space-y-2 flex-1">
+                <div class="p-4 space-y-2 flex-1 pb-10">
                     <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-0.5">Equipamentos
                         Individuais</div>
 
@@ -386,16 +397,30 @@
                 <div id="statusToast"
                     class="absolute top-6 left-1/2 -translate-x-1/2 bg-rescue-900/95 text-emerald-400 px-6 py-2.5 rounded-2xl text-xs font-bold border border-emerald-500/30 backdrop-blur-md pointer-events-none transition-opacity opacity-0 shadow-2xl z-50">
                     Pronto</div>
+
+                <div class="absolute bottom-6 left-6 flex flex-col gap-3 z-20 md:hidden">
+                    <button id="btnDeleteMobile"
+                        class="w-12 h-12 rounded-full bg-red-900/90 hover:bg-red-800 text-white border border-red-700 backdrop-blur-md shadow-lg flex items-center justify-center text-xl transition-colors"><i
+                            class="fa-solid fa-trash-can"></i></button>
+                </div>
+
+                <div class="absolute bottom-6 right-6 flex flex-col gap-3 z-20">
+                    <button id="btnZoomIn"
+                        class="w-12 h-12 rounded-full bg-rescue-800/90 hover:bg-rescue-700 text-white border border-rescue-700 backdrop-blur-md shadow-lg flex items-center justify-center text-xl transition-colors"><i
+                            class="fa-solid fa-plus"></i></button>
+                    <button id="btnZoomOut"
+                        class="w-12 h-12 rounded-full bg-rescue-800/90 hover:bg-rescue-700 text-white border border-rescue-700 backdrop-blur-md shadow-lg flex items-center justify-center text-xl transition-colors"><i
+                            class="fa-solid fa-minus"></i></button>
+                </div>
             </main>
         </div>
     </div>
 
-    <!-- SCRIPT DO SIMULADOR FÍSICO -->
     <script>
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
 
-        let simulatorRunning = false; // FLAG DE CONTROLE PARA PAUSAR O LOOP ANTES DO LOGIN
+        let simulatorRunning = false;
 
         const state = {
             width: window.innerWidth, height: window.innerHeight,
@@ -403,25 +428,19 @@
             components: [], ropes: [],
             selectedId: null, draggingId: null,
             selectedRopeId: null,
-
             isRotating: false,
             dragOffset: { x: 0, y: 0 },
             clickStartPos: { x: 0, y: 0 },
             hasMoved: false,
-
             hoverSnap: null, hoverRopeSnap: null,
             ropePath: [], idCounter: 1,
-
             isPullingHand: false,
             handPrevNodePos: { x: 0, y: 0 },
             handStartDist: 0,
             activePullDist: 0,
-
             globalLift: 0, currentLift: 0, targetLift: 0, loadWeight: 100,
-
-            isCaptured: false, forceRecalculate: true, showTMethod: true,
+            isCaptured: false, forceRecalculate: true, showTMethod: false,
             theoMA: 1, realMA: 1, ropeTensions: [], componentTensions: new Map(),
-
             camera: { zoom: 1, panX: 0, panY: 0, isPanning: false, lastX: 0, lastY: 0 }
         };
 
@@ -442,6 +461,34 @@
             clearTimeout(t.timer);
             t.timer = setTimeout(() => t.classList.add('opacity-0'), 2500);
         }
+
+        document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('-translate-x-full');
+            document.getElementById('mobileOverlay').classList.remove('hidden');
+        });
+        document.getElementById('closeMenuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+            document.getElementById('mobileOverlay').classList.add('hidden');
+        });
+        document.getElementById('mobileOverlay').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+            document.getElementById('mobileOverlay').classList.add('hidden');
+        });
+
+        document.getElementById('btnZoomIn').addEventListener('click', () => {
+            const newZoom = Math.min(4.0, state.camera.zoom * 1.3);
+            const cx = state.width / 2; const cy = state.height / 2;
+            state.camera.panX = cx - (cx - state.camera.panX) * (newZoom / state.camera.zoom);
+            state.camera.panY = cy - (cy - state.camera.panY) * (newZoom / state.camera.zoom);
+            state.camera.zoom = newZoom;
+        });
+        document.getElementById('btnZoomOut').addEventListener('click', () => {
+            const newZoom = Math.max(0.3, state.camera.zoom / 1.3);
+            const cx = state.width / 2; const cy = state.height / 2;
+            state.camera.panX = cx - (cx - state.camera.panX) * (newZoom / state.camera.zoom);
+            state.camera.panY = cy - (cy - state.camera.panY) * (newZoom / state.camera.zoom);
+            state.camera.zoom = newZoom;
+        });
 
         const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
         const dist = (p1, p2) => Math.hypot(p2.x - p1.x, p2.y - p1.y);
@@ -536,6 +583,7 @@
             btn.addEventListener('click', () => {
                 const type = btn.dataset.preset;
                 if (type === '3:1') loadPreset3to1(); else if (type === '5:1') loadPreset5to1(); else if (type === '6:1') loadPreset6to1();
+                if (window.innerWidth < 768) document.getElementById('closeMenuBtn').click();
             });
         });
 
@@ -548,7 +596,7 @@
             const hand = new Component('hand', cx + 160, cy + 60); const eight = new Component('knot_eight', cx + 160, cy + 60);
             carAnchor.attachedToId = anchor.id; carAnchor.userRotation = Math.PI; eight.attachedToId = carAnchor2.id; eight.attachedPort = 1;
             prusik.attachedToId = carAnchor.id; prusikReset.userRotation = 200; pulleyLoad.attachedToId = carAnchor.id; pulleyLoad.attachedPort = 1;
-            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 1;
+            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 0;
             carAnchor2.attachedToId = load.id; carAnchor3.attachedToId = anchor.id; carAnchor3.attachedPort = 2; carAnchor3.userRotation = Math.PI; carAnchor4.attachedToId = prusikReset.id; carAnchor4.userRotation = Math.PI / 2;
             state.components.push(anchor, load, carAnchor, carAnchor2, carAnchor3, carAnchor4, pulleyLoad, pulleyLoad2, pulleyLoad3, prusik, prusikReset, hand, eight);
             const r = new Rope(); r.nodes = [eight.id, pulleyLoad.id, pulleyLoad3.id, pulleyLoad2.id, hand.id]; state.ropes.push(r);
@@ -565,7 +613,7 @@
             const hand = new Component('hand', cx + 160, cy + 60); const eight = new Component('knot_eight', cx + 160, cy + 60);
             carAnchor.attachedToId = anchor.id; carAnchor.userRotation = Math.PI; eight.attachedToId = carAnchor2.id; eight.attachedPort = 1;
             prusik.attachedToId = carAnchor.id; prusikReset.userRotation = 200; pulleyLoad.attachedToId = carAnchor.id; pulleyLoad.attachedPort = 1;
-            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 1;
+            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 0;
             carAnchor2.attachedToId = load.id; carAnchor3.attachedToId = anchor.id; carAnchor3.attachedPort = 2; carAnchor3.userRotation = Math.PI; carAnchor4.attachedToId = prusikReset.id; carAnchor4.userRotation = Math.PI / 2; carAnchor5.attachedToId = load.id;
             state.components.push(anchor, load, carAnchor, carAnchor2, carAnchor3, carAnchor4, carAnchor5, pulleyLoad, pulleyLoad2, pulleyLoad3, prusik, prusikReset, hand, eight);
             const r = new Rope(); r.nodes = [eight.id, pulleyLoad.id, pulleyLoad3.id, pulleyLoad2.id, pulleyLoad3.id, pulleyLoad2.id, hand.id]; state.ropes.push(r);
@@ -597,6 +645,7 @@
                 const c = new Component(type, cx, cy);
                 if (type === 'rigplate' || type === 'anchor') c.baseY = cy; if (type === 'load') c.baseY = cy + 150;
                 state.components.push(c); showToast(`${type.toUpperCase().replace('_', ' ')} adicionado.`); state.forceRecalculate = true;
+                if (window.innerWidth < 768) document.getElementById('closeMenuBtn').click();
             });
         });
 
@@ -604,6 +653,7 @@
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active'); state.tool = btn.dataset.tool; state.ropePath = []; showToast(`Modo: ${state.tool === 'select' ? 'Selecionar' : 'Passar Corda'}`);
+                if (window.innerWidth < 768) document.getElementById('closeMenuBtn').click();
             });
         });
 
@@ -616,7 +666,9 @@
 
         canvas.addEventListener('pointerdown', e => {
             document.activeElement.blur(); const rect = canvas.getBoundingClientRect(); const clientX = e.clientX - rect.left; const clientY = e.clientY - rect.top; const p = getPos(e);
+
             if (e.button === 1 || (e.button === 0 && e.altKey)) { state.camera.isPanning = true; state.camera.lastX = clientX; state.camera.lastY = clientY; return; }
+
             if (state.selectedId && state.tool === 'select') {
                 const sel = state.components.find(c => c.id === state.selectedId);
                 if (sel && !['load', 'hand'].includes(sel.type)) {
@@ -624,7 +676,10 @@
                     if (dist(p, { x: hx, y: hy }) < 25) { state.isRotating = true; state.draggingId = sel.id; return; }
                 }
             }
+
             const clickedComp = findComponentAt(p);
+            const clickedRope = findRopeAt(p);
+
             if (state.tool === 'select') {
                 if (clickedComp) {
                     state.selectedRopeId = null;
@@ -642,7 +697,15 @@
                         state.selectedId = clickedComp.id; state.draggingId = clickedComp.id; state.isRotating = false; state.clickStartPos = { x: p.x, y: p.y }; state.hasMoved = false;
                         clickedComp.baseX = clickedComp.x; clickedComp.baseY = clickedComp.y; state.dragOffset = { x: p.x - clickedComp.x, y: p.y - clickedComp.y };
                     }
-                } else { state.selectedId = null; state.selectedRopeId = findRopeAt(p); }
+                } else {
+                    state.selectedId = null;
+                    state.selectedRopeId = clickedRope;
+                    if (!clickedRope) {
+                        state.camera.isPanning = true;
+                        state.camera.lastX = clientX;
+                        state.camera.lastY = clientY;
+                    }
+                }
             } else if (state.tool === 'rope') {
                 if (clickedComp && ['pulley_single', 'pulley_double', 'knot_eight', 'load', 'anchor', 'rigplate'].includes(clickedComp.type)) {
                     let occurrences = state.ropePath.filter(id => id === clickedComp.id).length;
@@ -651,6 +714,10 @@
                 } else if (state.ropePath.length > 0) {
                     const hand = new Component('hand', p.x, p.y); state.components.push(hand); state.ropePath.push(hand.id);
                     let r = new Rope(); r.nodes = [...state.ropePath]; state.ropes.push(r); state.ropePath = []; state.forceRecalculate = true; showToast("Corda Finalizada!"); document.getElementById('toolSelect').click();
+                } else {
+                    state.camera.isPanning = true;
+                    state.camera.lastX = clientX;
+                    state.camera.lastY = clientY;
                 }
             }
         });
@@ -764,19 +831,32 @@
             state.isPullingHand = false; state.draggingId = null; state.isRotating = false; state.forceRecalculate = true;
         });
 
+        function deleteSelectedItem() {
+            if (state.selectedId) {
+                const idToRemove = state.selectedId;
+                state.components = state.components.filter(c => c.id !== idToRemove);
+                state.components.forEach(c => { if (c.attachedToId === idToRemove) { c.attachedToId = null; c.baseX = c.x; c.baseY = c.y; } });
+                state.ropes.forEach(r => r.nodes = r.nodes.filter(nid => nid !== idToRemove)); state.ropes = state.ropes.filter(r => r.nodes.length >= 2);
+                state.components.forEach(c => { if (c.ropeSegment && (!state.ropes.find(r => r.id === c.ropeSegment.ropeId) || c.ropeSegment.index >= state.ropes.find(r => r.id === c.ropeSegment.ropeId).nodes.length - 1)) { c.ropeSegment = null; } });
+                state.selectedId = null; state.forceRecalculate = true; showToast("Componente Excluído");
+            } else if (state.selectedRopeId) {
+                removeRope(state.selectedRopeId);
+            } else {
+                showToast("Nenhum item selecionado", true);
+            }
+        }
+
         window.addEventListener('keydown', (e) => {
             if (e.target.tagName.toLowerCase() === 'input') return;
             if (e.key === 'Delete' || e.key === 'Backspace') {
-                if (state.selectedId) {
-                    e.preventDefault(); const idToRemove = state.selectedId;
-                    state.components = state.components.filter(c => c.id !== idToRemove);
-                    state.components.forEach(c => { if (c.attachedToId === idToRemove) { c.attachedToId = null; c.baseX = c.x; c.baseY = c.y; } });
-                    state.ropes.forEach(r => r.nodes = r.nodes.filter(nid => nid !== idToRemove)); state.ropes = state.ropes.filter(r => r.nodes.length >= 2);
-                    state.components.forEach(c => { if (c.ropeSegment && (!state.ropes.find(r => r.id === c.ropeSegment.ropeId) || c.ropeSegment.index >= state.ropes.find(r => r.id === c.ropeSegment.ropeId).nodes.length - 1)) { c.ropeSegment = null; } });
-                    state.selectedId = null; state.forceRecalculate = true; showToast("Componente Excluído");
-                } else if (state.selectedRopeId) { e.preventDefault(); removeRope(state.selectedRopeId); }
+                if (state.selectedId || state.selectedRopeId) {
+                    e.preventDefault();
+                    deleteSelectedItem();
+                }
             }
         });
+
+        document.getElementById('btnDeleteMobile').addEventListener('click', deleteSelectedItem);
 
         function removeRope(ropeId) {
             state.ropes = state.ropes.filter(r => r.id !== ropeId);
@@ -924,9 +1004,15 @@
                     const pLocalGlobalX = pPort.x * Math.cos(pRot) - pPort.y * Math.sin(pRot); const pLocalGlobalY = pPort.x * Math.sin(pRot) + pPort.y * Math.cos(pRot);
                     const parentAbsX = parent.x + pLocalGlobalX; const parentAbsY = parent.y + pLocalGlobalY;
                     const prusikAbsX = component.x + ex * Math.cos(rot) - ey * Math.sin(rot); const prusikAbsY = component.y + ex * Math.sin(rot) + ey * Math.cos(rot);
-                    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); const z = state.camera.zoom; const panX = state.camera.panX; const panY = state.camera.panY;
-                    const screenPrusikX = prusikAbsX * z + panX; const screenPrusikY = prusikAbsY * z + panY; const screenParentX = parentAbsX * z + panX; const screenParentY = parentAbsY * z + panY;
-                    ctx.strokeStyle = color; ctx.lineWidth = 3 * z; ctx.setLineDash([4 * z, 2 * z]); ctx.beginPath(); ctx.moveTo(screenPrusikX, screenPrusikY); ctx.lineTo(screenParentX, screenParentY); ctx.stroke(); ctx.restore();
+
+                    ctx.save();
+                    ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+                    ctx.translate(state.camera.panX, state.camera.panY);
+                    ctx.scale(state.camera.zoom, state.camera.zoom);
+
+                    ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.setLineDash([4, 2]);
+                    ctx.beginPath(); ctx.moveTo(prusikAbsX, prusikAbsY); ctx.lineTo(parentAbsX, parentAbsY); ctx.stroke();
+                    ctx.restore();
                 }
             }
             ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(0, 35, 6, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.setLineDash([]); ctx.beginPath(); ctx.arc(0, 35, 6, 0, Math.PI * 2); ctx.stroke();
@@ -940,7 +1026,7 @@
         }
 
         function loop() {
-            if (!simulatorRunning) return; // Só renderiza se estiver logado
+            if (!simulatorRunning) return;
             updatePhysics();
             canvas.width = state.width * window.devicePixelRatio; canvas.height = state.height * window.devicePixelRatio;
             ctx.save(); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
@@ -985,10 +1071,8 @@
             ctx.restore(); requestAnimationFrame(loop);
         }
 
-        // INIT DA TELA (SOMENTE RESIZE)
         window.addEventListener('load', () => { resize(); });
 
-        // FUNÇÃO CHAMADA PELO SCRIPT DE LOGIN APÓS SUCESSO
         function startSimulator() {
             document.getElementById('loginScreen').style.display = 'none';
             const app = document.getElementById('appContainer');
@@ -997,33 +1081,16 @@
 
             simulatorRunning = true;
             resize();
-            loadPreset3to1(); // Carrega o 3:1 inicial
+            loadPreset3to1();
             requestAnimationFrame(loop);
             document.getElementById('mainCanvasContainer').focus();
         }
     </script>
 
-
-    <!-- ========================================== -->
-    <!-- SCRIPT DE AUTENTICAÇÃO (Supabase + Fingerprint) -->
-    <!-- ========================================== -->
-
-    <!-- ========================================== -->
-    <!-- SCRIPT DE AUTENTICAÇÃO (Supabase + Fingerprint) -->
-    <!-- ========================================== -->
     <script>
-        // ----------------------------------------------------
-        // INSTRUÇÃO DE INTEGRAÇÃO: COLE SUAS CHAVES AQUI
-        // ----------------------------------------------------
         const SUPABASE_URL = 'https://fqnhlkmaqtjmvdjdteel.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_msvyYeE2QMIdQ1AXWrktcA_5FBSANQf';
-        // ----------------------------------------------------
 
-        if (SUPABASE_URL === 'SUA_PROJECT_URL_AQUI') {
-            console.error("ERRO: Configure o URL e a KEY do Supabase no final do arquivo HTML.");
-        }
-
-        // MUDANÇA AQUI: Trocamos 'supabase' por 'supabaseClient'
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let sessionInterval = null;
         let currentSessionToken = null;
@@ -1060,15 +1127,12 @@
             const password = document.getElementById('password').value;
 
             try {
-                // 1. Tentar Login
                 const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password });
                 if (authError) throw new Error("E-mail ou senha incorretos.");
                 const user = authData.user;
 
-                // 2. Coletar Identidade do Dispositivo
                 const deviceId = await getDeviceFingerprint();
 
-                // 3. Checar Limite de Dispositivos (Máx 2)
                 const { data: devices, error: devError } = await supabaseClient.from('user_devices').select('*').eq('user_id', user.id);
                 if (devError) throw new Error("Erro ao verificar dispositivos.");
 
@@ -1084,7 +1148,6 @@
                     }
                 }
 
-                // 4. Configurar Sessão Única Ativa
                 currentSessionToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
                 const { error: sessionError } = await supabaseClient.from('user_sessions').upsert({
                     user_id: user.id,
@@ -1094,10 +1157,7 @@
 
                 if (sessionError) throw new Error("Erro ao registrar a sessão.");
 
-                // 5. Monitoramento de Sessão Ativa
                 startSessionMonitor(user.id);
-
-                // Sucesso!
                 startSimulator();
 
             } catch (error) {
@@ -1121,7 +1181,7 @@
 
                     showError("Sua conta fez login em outro dispositivo. Você foi desconectado.");
                 }
-            }, 10000); // 10s
+            }, 10000);
         }
 
         document.getElementById('btnSair').addEventListener('click', async () => {
