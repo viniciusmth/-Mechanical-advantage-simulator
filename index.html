@@ -306,7 +306,8 @@
                         data-type="rigplate">
                         <div
                             class="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-rescue-red border border-red-500/20">
-                            <i class="fa-solid fa-paw text-xs"></i></div>
+                            <i class="fa-solid fa-paw text-xs"></i>
+                        </div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-red transition-colors">
                             Placa Multi-Furos</div>
                     </button>
@@ -315,7 +316,8 @@
                         data-type="anchor">
                         <div
                             class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
-                            <i class="fa-solid fa-thumbtack text-xs"></i></div>
+                            <i class="fa-solid fa-thumbtack text-xs"></i>
+                        </div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
                             Ancoragem Simples</div>
                     </button>
@@ -324,7 +326,8 @@
                         data-type="carabiner">
                         <div
                             class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
-                            <i class="fa-solid fa-link text-xs"></i></div>
+                            <i class="fa-solid fa-link text-xs"></i>
+                        </div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
                             Mosquetão</div>
                     </button>
@@ -333,7 +336,8 @@
                         data-type="pulley_single">
                         <div
                             class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-rescue-blue border border-blue-500/20">
-                            <i class="fa-solid fa-circle-notch text-xs"></i></div>
+                            <i class="fa-solid fa-circle-notch text-xs"></i>
+                        </div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-blue transition-colors">
                             Polia Simples (A/B)</div>
                     </button>
@@ -342,7 +346,8 @@
                         data-type="pulley_double">
                         <div
                             class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-rescue-gold border border-amber-500/20">
-                            <i class="fa-solid fa-circle-notch text-xs"></i></div>
+                            <i class="fa-solid fa-circle-notch text-xs"></i>
+                        </div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-gold transition-colors">
                             Polia Dupla</div>
                     </button>
@@ -351,7 +356,8 @@
                         data-type="prusik_capture">
                         <div
                             class="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-rescue-red border border-red-500/20">
-                            <i class="fa-solid fa-grip-lines text-xs"></i></div>
+                            <i class="fa-solid fa-grip-lines text-xs"></i>
+                        </div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-red transition-colors">
                             Prusik (Captura)</div>
                     </button>
@@ -360,7 +366,8 @@
                         data-type="prusik_tractor">
                         <div
                             class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-rescue-yellow border border-amber-500/20">
-                            <i class="fa-solid fa-arrows-up-down text-xs"></i></div>
+                            <i class="fa-solid fa-arrows-up-down text-xs"></i>
+                        </div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-yellow transition-colors">
                             Prusik (Reset/Móvel)</div>
                     </button>
@@ -369,7 +376,8 @@
                         data-type="knot_eight">
                         <div
                             class="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
-                            <i class="fa-solid fa-infinity text-xs"></i></div>
+                            <i class="fa-solid fa-infinity text-xs"></i>
+                        </div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-emerald-400 transition-colors">Nó
                             Oito (Terminação)</div>
                     </button>
@@ -378,7 +386,8 @@
                         data-type="load">
                         <div
                             class="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center text-rescue-orange border border-orange-500/20">
-                            <i class="fa-solid fa-weight-hanging text-xs"></i></div>
+                            <i class="fa-solid fa-weight-hanging text-xs"></i>
+                        </div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-orange transition-colors">
                             Carga (Peso)</div>
                     </button>
@@ -592,7 +601,7 @@
             const hand = new Component('hand', cx + 160, cy + 60); const eight = new Component('knot_eight', cx + 160, cy + 60);
             carAnchor.attachedToId = anchor.id; carAnchor.userRotation = Math.PI; eight.attachedToId = carAnchor2.id; eight.attachedPort = 1;
             prusik.attachedToId = carAnchor.id; prusikReset.userRotation = 200; pulleyLoad.attachedToId = carAnchor.id; pulleyLoad.attachedPort = 1;
-            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 1;
+            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 0;
             carAnchor2.attachedToId = load.id; carAnchor3.attachedToId = anchor.id; carAnchor3.attachedPort = 2; carAnchor3.userRotation = Math.PI; carAnchor4.attachedToId = prusikReset.id; carAnchor4.userRotation = Math.PI / 2;
             state.components.push(anchor, load, carAnchor, carAnchor2, carAnchor3, carAnchor4, pulleyLoad, pulleyLoad2, pulleyLoad3, prusik, prusikReset, hand, eight);
             const r = new Rope(); r.nodes = [eight.id, pulleyLoad.id, pulleyLoad3.id, pulleyLoad2.id, hand.id]; state.ropes.push(r);
@@ -609,7 +618,7 @@
             const hand = new Component('hand', cx + 160, cy + 60); const eight = new Component('knot_eight', cx + 160, cy + 60);
             carAnchor.attachedToId = anchor.id; carAnchor.userRotation = Math.PI; eight.attachedToId = carAnchor2.id; eight.attachedPort = 1;
             prusik.attachedToId = carAnchor.id; prusikReset.userRotation = 200; pulleyLoad.attachedToId = carAnchor.id; pulleyLoad.attachedPort = 1;
-            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 1;
+            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 0;
             carAnchor2.attachedToId = load.id; carAnchor3.attachedToId = anchor.id; carAnchor3.attachedPort = 2; carAnchor3.userRotation = Math.PI; carAnchor4.attachedToId = prusikReset.id; carAnchor4.userRotation = Math.PI / 2; carAnchor5.attachedToId = load.id;
             state.components.push(anchor, load, carAnchor, carAnchor2, carAnchor3, carAnchor4, carAnchor5, pulleyLoad, pulleyLoad2, pulleyLoad3, prusik, prusikReset, hand, eight);
             const r = new Rope(); r.nodes = [eight.id, pulleyLoad.id, pulleyLoad3.id, pulleyLoad2.id, pulleyLoad3.id, pulleyLoad2.id, hand.id]; state.ropes.push(r);
