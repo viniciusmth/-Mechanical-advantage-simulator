@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Simulador de Vantagem Mecânica</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -156,7 +157,8 @@
     </div>
 
     <div id="appContainer" class="hidden flex-col h-screen w-full">
-        <header class="glass-panel border-b border-rescue-800 flex flex-col z-20 shrink-0 shadow-2xl relative">
+        <header
+            class="glass-panel border-b border-rescue-800 flex flex-col z-20 shrink-0 shadow-2xl relative pt-[env(safe-area-inset-top)]">
             <div class="flex flex-wrap md:flex-nowrap items-center justify-between px-3 md:px-5 py-3 gap-3">
                 <div class="flex items-center gap-3 w-full md:w-auto">
                     <button id="mobileMenuBtn"
@@ -239,9 +241,9 @@
             <div id="mobileOverlay" class="hidden md:hidden fixed inset-0 bg-black/60 z-40 transition-opacity"></div>
 
             <aside id="sidebar"
-                class="fixed md:relative left-0 top-0 h-full w-72 md:w-80 glass-panel border-r border-rescue-800 flex flex-col z-50 shadow-2xl shrink-0 overflow-y-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+                class="fixed md:relative left-0 top-0 h-full w-72 md:w-80 glass-panel border-r border-rescue-800 flex flex-col z-50 shadow-2xl shrink-0 overflow-y-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
                 <button id="closeMenuBtn"
-                    class="md:hidden absolute top-4 right-4 text-slate-400 hover:text-white bg-rescue-800/50 rounded-full w-8 h-8 flex items-center justify-center">
+                    class="md:hidden absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 text-slate-400 hover:text-white bg-rescue-800/50 rounded-full w-8 h-8 flex items-center justify-center z-50">
                     <i class="fa-solid fa-times"></i>
                 </button>
 
@@ -304,8 +306,7 @@
                         data-type="rigplate">
                         <div
                             class="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-rescue-red border border-red-500/20">
-                            <i class="fa-solid fa-paw text-xs"></i>
-                        </div>
+                            <i class="fa-solid fa-paw text-xs"></i></div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-red transition-colors">
                             Placa Multi-Furos</div>
                     </button>
@@ -314,8 +315,7 @@
                         data-type="anchor">
                         <div
                             class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
-                            <i class="fa-solid fa-thumbtack text-xs"></i>
-                        </div>
+                            <i class="fa-solid fa-thumbtack text-xs"></i></div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
                             Ancoragem Simples</div>
                     </button>
@@ -324,8 +324,7 @@
                         data-type="carabiner">
                         <div
                             class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
-                            <i class="fa-solid fa-link text-xs"></i>
-                        </div>
+                            <i class="fa-solid fa-link text-xs"></i></div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
                             Mosquetão</div>
                     </button>
@@ -334,8 +333,7 @@
                         data-type="pulley_single">
                         <div
                             class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-rescue-blue border border-blue-500/20">
-                            <i class="fa-solid fa-circle-notch text-xs"></i>
-                        </div>
+                            <i class="fa-solid fa-circle-notch text-xs"></i></div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-blue transition-colors">
                             Polia Simples (A/B)</div>
                     </button>
@@ -344,8 +342,7 @@
                         data-type="pulley_double">
                         <div
                             class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-rescue-gold border border-amber-500/20">
-                            <i class="fa-solid fa-circle-notch text-xs"></i>
-                        </div>
+                            <i class="fa-solid fa-circle-notch text-xs"></i></div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-gold transition-colors">
                             Polia Dupla</div>
                     </button>
@@ -354,8 +351,7 @@
                         data-type="prusik_capture">
                         <div
                             class="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-rescue-red border border-red-500/20">
-                            <i class="fa-solid fa-grip-lines text-xs"></i>
-                        </div>
+                            <i class="fa-solid fa-grip-lines text-xs"></i></div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-red transition-colors">
                             Prusik (Captura)</div>
                     </button>
@@ -364,8 +360,7 @@
                         data-type="prusik_tractor">
                         <div
                             class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-rescue-yellow border border-amber-500/20">
-                            <i class="fa-solid fa-arrows-up-down text-xs"></i>
-                        </div>
+                            <i class="fa-solid fa-arrows-up-down text-xs"></i></div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-yellow transition-colors">
                             Prusik (Reset/Móvel)</div>
                     </button>
@@ -374,8 +369,7 @@
                         data-type="knot_eight">
                         <div
                             class="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
-                            <i class="fa-solid fa-infinity text-xs"></i>
-                        </div>
+                            <i class="fa-solid fa-infinity text-xs"></i></div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-emerald-400 transition-colors">Nó
                             Oito (Terminação)</div>
                     </button>
@@ -384,8 +378,7 @@
                         data-type="load">
                         <div
                             class="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center text-rescue-orange border border-orange-500/20">
-                            <i class="fa-solid fa-weight-hanging text-xs"></i>
-                        </div>
+                            <i class="fa-solid fa-weight-hanging text-xs"></i></div>
                         <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-orange transition-colors">
                             Carga (Peso)</div>
                     </button>
@@ -395,16 +388,18 @@
             <main tabindex="0" class="flex-1 relative outline-none bg-[#070a12]" id="mainCanvasContainer">
                 <canvas id="simCanvas"></canvas>
                 <div id="statusToast"
-                    class="absolute top-6 left-1/2 -translate-x-1/2 bg-rescue-900/95 text-emerald-400 px-6 py-2.5 rounded-2xl text-xs font-bold border border-emerald-500/30 backdrop-blur-md pointer-events-none transition-opacity opacity-0 shadow-2xl z-50">
+                    class="absolute top-[calc(1.5rem+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 bg-rescue-900/95 text-emerald-400 px-6 py-2.5 rounded-2xl text-xs font-bold border border-emerald-500/30 backdrop-blur-md pointer-events-none transition-opacity opacity-0 shadow-2xl z-50">
                     Pronto</div>
 
-                <div class="absolute bottom-6 left-6 flex flex-col gap-3 z-20 md:hidden">
+                <div
+                    class="absolute left-6 flex flex-col gap-3 z-20 md:hidden bottom-[calc(1.5rem+env(safe-area-inset-bottom))]">
                     <button id="btnDeleteMobile"
                         class="w-12 h-12 rounded-full bg-red-900/90 hover:bg-red-800 text-white border border-red-700 backdrop-blur-md shadow-lg flex items-center justify-center text-xl transition-colors"><i
                             class="fa-solid fa-trash-can"></i></button>
                 </div>
 
-                <div class="absolute bottom-6 right-6 flex flex-col gap-3 z-20">
+                <div
+                    class="absolute right-6 flex flex-col gap-3 z-20 bottom-[calc(1.5rem+env(safe-area-inset-bottom))]">
                     <button id="btnZoomIn"
                         class="w-12 h-12 rounded-full bg-rescue-800/90 hover:bg-rescue-700 text-white border border-rescue-700 backdrop-blur-md shadow-lg flex items-center justify-center text-xl transition-colors"><i
                             class="fa-solid fa-plus"></i></button>
@@ -457,7 +452,7 @@
         function showToast(msg, isError = false) {
             const t = document.getElementById('statusToast');
             t.textContent = msg;
-            t.className = `absolute top-6 left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-2xl text-xs font-bold border backdrop-blur-md pointer-events-none transition-opacity shadow-2xl z-50 ${isError ? 'bg-red-950/95 text-red-400 border-red-500/30' : 'bg-rescue-900/95 text-emerald-400 border-emerald-500/30'}`;
+            t.className = `absolute top-[calc(1.5rem+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-2xl text-xs font-bold border backdrop-blur-md pointer-events-none transition-opacity shadow-2xl z-50 ${isError ? 'bg-red-950/95 text-red-400 border-red-500/30' : 'bg-rescue-900/95 text-emerald-400 border-emerald-500/30'}`;
             t.classList.remove('opacity-0');
             clearTimeout(t.timer);
             t.timer = setTimeout(() => t.classList.add('opacity-0'), 2500);
@@ -597,7 +592,7 @@
             const hand = new Component('hand', cx + 160, cy + 60); const eight = new Component('knot_eight', cx + 160, cy + 60);
             carAnchor.attachedToId = anchor.id; carAnchor.userRotation = Math.PI; eight.attachedToId = carAnchor2.id; eight.attachedPort = 1;
             prusik.attachedToId = carAnchor.id; prusikReset.userRotation = 200; pulleyLoad.attachedToId = carAnchor.id; pulleyLoad.attachedPort = 1;
-            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 0;
+            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 1;
             carAnchor2.attachedToId = load.id; carAnchor3.attachedToId = anchor.id; carAnchor3.attachedPort = 2; carAnchor3.userRotation = Math.PI; carAnchor4.attachedToId = prusikReset.id; carAnchor4.userRotation = Math.PI / 2;
             state.components.push(anchor, load, carAnchor, carAnchor2, carAnchor3, carAnchor4, pulleyLoad, pulleyLoad2, pulleyLoad3, prusik, prusikReset, hand, eight);
             const r = new Rope(); r.nodes = [eight.id, pulleyLoad.id, pulleyLoad3.id, pulleyLoad2.id, hand.id]; state.ropes.push(r);
@@ -614,7 +609,7 @@
             const hand = new Component('hand', cx + 160, cy + 60); const eight = new Component('knot_eight', cx + 160, cy + 60);
             carAnchor.attachedToId = anchor.id; carAnchor.userRotation = Math.PI; eight.attachedToId = carAnchor2.id; eight.attachedPort = 1;
             prusik.attachedToId = carAnchor.id; prusikReset.userRotation = 200; pulleyLoad.attachedToId = carAnchor.id; pulleyLoad.attachedPort = 1;
-            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 0;
+            pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 1;
             carAnchor2.attachedToId = load.id; carAnchor3.attachedToId = anchor.id; carAnchor3.attachedPort = 2; carAnchor3.userRotation = Math.PI; carAnchor4.attachedToId = prusikReset.id; carAnchor4.userRotation = Math.PI / 2; carAnchor5.attachedToId = load.id;
             state.components.push(anchor, load, carAnchor, carAnchor2, carAnchor3, carAnchor4, carAnchor5, pulleyLoad, pulleyLoad2, pulleyLoad3, prusik, prusikReset, hand, eight);
             const r = new Rope(); r.nodes = [eight.id, pulleyLoad.id, pulleyLoad3.id, pulleyLoad2.id, pulleyLoad3.id, pulleyLoad2.id, hand.id]; state.ropes.push(r);
@@ -780,22 +775,26 @@
             if (state.isPinching) return;
             const rect = canvas.getBoundingClientRect(); const clientX = e.clientX - rect.left; const clientY = e.clientY - rect.top;
             if (state.camera.isPanning) { state.camera.panX += clientX - state.camera.lastX; state.camera.panY += clientY - state.camera.lastY; state.camera.lastX = clientX; state.camera.lastY = clientY; return; }
+
             if (state.draggingId && state.tool === 'select') {
                 const c = state.components.find(x => x.id === state.draggingId); if (!c) return; const p = getPos(e);
+
                 if (!state.hasMoved) {
                     if (Math.hypot(p.x - state.clickStartPos.x, p.y - state.clickStartPos.y) > 5) {
                         state.hasMoved = true;
                         if (c.type !== 'hand') {
-                            const prevAbsRot = c.getTotalRotation(); // <--- Rotação calculada antes de soltar do cabo
+                            const prevAbsRot = c.getTotalRotation();
                             if (c.attachedToId) c.attachedToId = null;
                             if (c.ropeSegment) c.ropeSegment = null;
                             if (c.type.startsWith('prusik')) {
-                                c.userRotation = prevAbsRot - c.getPrusikRopeAngle(); // <--- Assando a rotação antiga
+                                c.userRotation = prevAbsRot - c.getPrusikRopeAngle();
                             }
                         }
-                        if (c.type === 'load') { c.baseX = c.x - (c.liftOffsetX || 0); c.baseY = c.y - (c.liftOffsetY || 0); } else { c.baseX = c.x; c.baseY = c.y; }
+                        if (c.type === 'load') { c.baseX = c.x - (c.liftOffsetX || 0); c.baseY = c.y - (c.liftOffsetY || 0); }
+                        else { c.baseX = c.x; c.baseY = c.y; }
                     } else return;
                 }
+
                 if (state.isPullingHand && c.type === 'hand') {
                     let currentDist = dist(p, state.handPrevNodePos); let pullAmt = Math.max(0, currentDist - state.handStartDist); let maxPull = Infinity;
                     state.components.forEach(tr => {
@@ -815,12 +814,15 @@
                     if (pullAmt > maxPull) { pullAmt = maxPull; const constrainedDist = state.handStartDist + maxPull; const angle = Math.atan2(p.y - state.handPrevNodePos.y, p.x - state.handPrevNodePos.x); p.x = state.handPrevNodePos.x + Math.cos(angle) * constrainedDist; p.y = state.handPrevNodePos.y + Math.sin(angle) * constrainedDist; }
                     state.activePullDist = pullAmt; c.baseX = p.x; c.baseY = p.y; return;
                 }
+
                 if (state.isRotating) {
                     let angle = Math.atan2(p.y - c.y, p.x - c.x) + Math.PI / 2; let parentRot = 0;
                     if (c.attachedToId) { const parent = state.components.find(x => x.id === c.attachedToId); if (parent && parent.type.startsWith('prusik')) parentRot = parent.getPrusikRopeAngle(); } else if (c.type.startsWith('prusik')) parentRot = c.getPrusikRopeAngle();
                     c.userRotation = angle - parentRot; state.forceRecalculate = true; return;
                 }
-                if (c.type === 'load') { c.baseX = p.x - state.dragOffset.x - (c.liftOffsetX || 0); c.baseY = p.y - state.dragOffset.y - (c.liftOffsetY || 0); } else { c.baseX = p.x - state.dragOffset.x; c.baseY = p.y - state.dragOffset.y; }
+
+                if (c.type === 'load') { c.baseX = p.x - state.dragOffset.x - (c.liftOffsetX || 0); c.baseY = p.y - state.dragOffset.y - (c.liftOffsetY || 0); }
+                else { c.baseX = p.x - state.dragOffset.x; c.baseY = p.y - state.dragOffset.y; }
 
                 let bestSnap = null; let bestRopeSnap = null; let closestDist = Infinity;
                 if (c.type.startsWith('prusik')) {
@@ -836,8 +838,20 @@
                         } if (bestRopeSnap) break;
                     }
                 }
+
                 for (let target of state.components) {
                     if (target.id === c.id) continue;
+
+                    let isChild = false;
+                    let curr = target;
+                    let iterSafe = 0;
+                    while (curr && curr.attachedToId && iterSafe < 20) {
+                        if (curr.attachedToId === c.id) { isChild = true; break; }
+                        curr = state.components.find(x => x.id === curr.attachedToId);
+                        iterSafe++;
+                    }
+                    if (isChild) continue;
+
                     const tPorts = target.getRotatedPorts(); const myPorts = c.getRotatedPorts();
                     for (let tPort of tPorts) {
                         for (let mPort of myPorts) {
@@ -1228,7 +1242,6 @@
 
                 if (sessionError) throw new Error("Erro ao registrar a sessão.");
 
-                // Salva o token de segurança no navegador para a sessão automática futura
                 localStorage.setItem('sim_vm_session_token', currentSessionToken);
 
                 startSessionMonitor(user.id);
@@ -1261,12 +1274,11 @@
 
         document.getElementById('btnSair').addEventListener('click', async () => {
             if (sessionInterval) clearInterval(sessionInterval);
-            localStorage.removeItem('sim_vm_session_token'); // Limpa a sessão automática
+            localStorage.removeItem('sim_vm_session_token');
             await supabaseClient.auth.signOut();
             window.location.reload();
         });
 
-        // Função de inicialização: Verifica se é possível fazer o login automático com segurança
         window.addEventListener('DOMContentLoaded', async () => {
             const { data } = await supabaseClient.auth.getSession();
             if (data.session) {
@@ -1280,16 +1292,14 @@
                         .eq('user_id', user.id)
                         .single();
 
-                    // Se a aba foi fechada, mas ninguém deslogou você do banco de dados: Auto-login
                     if (sessionData && sessionData.session_token === localToken) {
                         currentSessionToken = localToken;
                         startSessionMonitor(user.id);
                         startSimulator();
-                        return; // Impede o sistema de encerrar sua sessão
+                        return;
                     }
                 }
 
-                // Se chegar até aqui, é porque você não tem o token ou outro celular usou a conta e "roubou" a sessão
                 localStorage.removeItem('sim_vm_session_token');
                 await supabaseClient.auth.signOut();
             }
