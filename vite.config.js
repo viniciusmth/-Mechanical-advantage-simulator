@@ -18,7 +18,7 @@ export default defineConfig({
                 stringArrayThreshold: 1,
                 unicodeEscapeSequence: false,
                 // TRAVA DE DOMÍNIO: Adicione seu domínio real abaixo
-                domainLock: ['https://mechanical-advantage-simulator.vercel.app/', 'http://localhost:5173/'], // Domínios permitidos
+                domainLock: ['https://mechanical-advantage-simulator.vercel.app/', 'simuladordevantagemmecanica.online', 'http://localhost:5173/'], // Domínios permitidos
                 domainLockRedirectUrl: 'about:blank' // Para onde mandar se for roubado
             }
         })
