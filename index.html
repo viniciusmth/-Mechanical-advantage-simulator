@@ -792,11 +792,14 @@
                     if (Math.hypot(p.x - state.clickStartPos.x, p.y - state.clickStartPos.y) > 5) {
                         state.hasMoved = true;
                         if (c.type !== 'hand') {
-                            const prevAbsRot = c.getTotalRotation();
-                            if (c.attachedToId) c.attachedToId = null;
-                            if (c.ropeSegment) c.ropeSegment = null;
-                            if (c.type.startsWith('prusik')) {
-                                c.userRotation = prevAbsRot - c.getPrusikRopeAngle();
+                            // Se for um prusik trator na corda, seguramos o detach para que ele deslize!
+                            if (!(c.type === 'prusik_tractor' && c.ropeSegment)) {
+                                const prevAbsRot = c.getTotalRotation();
+                                if (c.attachedToId) c.attachedToId = null;
+                                if (c.ropeSegment) c.ropeSegment = null;
+                                if (c.type.startsWith('prusik')) {
+                                    c.userRotation = prevAbsRot - c.getPrusikRopeAngle();
+                                }
                             }
                         }
                         if (c.type === 'load') { c.baseX = c.x - (c.liftOffsetX || 0); c.baseY = c.y - (c.liftOffsetY || 0); }
@@ -830,10 +833,46 @@
                     c.userRotation = angle - parentRot; state.forceRecalculate = true; return;
                 }
 
+                // MODO SLIDER: Deslizar o prusik trator na corda
+                if (c.type === 'prusik_tractor' && c.ropeSegment) {
+                    const r = state.ropes.find(x => x.id === c.ropeSegment.ropeId);
+                    if (r) {
+                        const rNodes = getRopePositions(r);
+                        if (rNodes.length > c.ropeSegment.index + 1) {
+                            const p1 = rNodes[c.ropeSegment.index].pos;
+                            const p2 = rNodes[c.ropeSegment.index + 1].pos;
+                            const l2 = Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2);
+                            if (l2 > 0) {
+                                let t = ((p.x - p1.x) * (p2.x - p1.x) + (p.y - p1.y) * (p2.y - p1.y)) / l2;
+                                const projX = p1.x + t * (p2.x - p1.x);
+                                const projY = p1.y + t * (p2.y - p1.y);
+                                const distToLine = Math.hypot(p.x - projX, p.y - projY);
+
+                                // Se puxar muito para o lado (> 60px), aí sim desconecta!
+                                if (distToLine > 60) {
+                                    const prevAbsRot = c.getTotalRotation();
+                                    c.ropeSegment = null;
+                                    c.userRotation = prevAbsRot - c.getPrusikRopeAngle();
+                                    c.baseX = p.x - state.dragOffset.x;
+                                    c.baseY = p.y - state.dragOffset.y;
+                                } else {
+                                    // Continua deslizando pela corda
+                                    t = Math.max(0.05, Math.min(0.95, t));
+                                    c.ropeSegment.targetRatio = t;
+                                    c.ropeSegment.startRatio = t; // Reseta o curso!
+                                    state.forceRecalculate = true;
+                                    return; // Interrompe para não ficar calculando snaps soltos
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (c.type === 'load') { c.baseX = p.x - state.dragOffset.x - (c.liftOffsetX || 0); c.baseY = p.y - state.dragOffset.y - (c.liftOffsetY || 0); }
                 else { c.baseX = p.x - state.dragOffset.x; c.baseY = p.y - state.dragOffset.y; }
 
                 let bestSnap = null; let bestRopeSnap = null; let closestDist = Infinity;
+                // Restante do código original que faz loop verificando Snaps...
                 if (c.type.startsWith('prusik')) {
                     for (let rope of state.ropes) {
                         const rNodes = getRopePositions(rope);
@@ -962,8 +1001,16 @@
         document.getElementById('inputWeight').addEventListener('input', e => { state.loadWeight = parseFloat(e.target.value) || 0; state.forceRecalculate = true; });
         document.getElementById('toggleTMethod').addEventListener('change', e => { state.showTMethod = e.target.checked; state.forceRecalculate = true; });
         document.getElementById('btnResetStroke').addEventListener('click', () => {
-            let prusikFound = false; state.components.forEach(c => { if (c.type === 'prusik_tractor' && c.ropeSegment) { c.ropeSegment.targetRatio = Math.max(0.1, c.ropeSegment.targetRatio - 0.25); prusikFound = true; } });
-            if (prusikFound) showToast("Curso do Prusik Resetado"); else showToast("Nenhum Prusik Trator na corda.", true);
+            let prusikFound = false;
+            state.components.forEach(c => {
+                if (c.type === 'prusik_tractor' && c.ropeSegment) {
+                    c.ropeSegment.targetRatio = 0.05; // Reset completo em 1 clique
+                    c.ropeSegment.startRatio = 0.05;  // Prepara a referência pro próximo tracionamento
+                    prusikFound = true;
+                }
+            });
+            if (prusikFound) showToast("Curso do Prusik Resetado");
+            else showToast("Nenhum Prusik Trator na corda.", true);
         });
 
         function traceToAnchor(cId, visited = new Set()) {
