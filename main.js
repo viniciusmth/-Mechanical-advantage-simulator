@@ -178,7 +178,7 @@ window.addEventListener('resize', resize);
 function showToast(msg, isError = false) {
     const t = document.getElementById('statusToast');
     t.textContent = msg;
-    t.className = `absolute top-[calc(1.5rem+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-2xl text-xs font-bold border backdrop-blur-md pointer-events-none transition-opacity shadow-2xl z-50 ${isError ? 'bg-red-950/95 text-red-400 border-red-500/30' : 'bg-rescue-900/95 text-emerald-400 border-emerald-500/30'}`;
+    t.className = `absolute safe-toast left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-2xl text-xs font-bold border backdrop-blur-md pointer-events-none transition-opacity shadow-2xl z-50 ${isError ? 'bg-red-950/95 text-red-400 border-red-500/30' : 'bg-rescue-900/95 text-emerald-400 border-emerald-500/30'}`;
     t.classList.remove('opacity-0');
     clearTimeout(t.timer);
     t.timer = setTimeout(() => t.classList.add('opacity-0'), 2500);
