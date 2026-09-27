@@ -890,9 +890,16 @@
             if (state.draggingId && state.tool === 'select' && state.hasMoved && !state.isPullingHand) {
                 const c = state.components.find(x => x.id === state.draggingId);
                 if (c) {
+                    // Captura a rotação total visual antes de qualquer conexão nova
+                    const prevAbsRot = c.getTotalRotation();
+
                     if (c.type.startsWith('prusik')) {
                         if (state.hoverSnap) { c.attachedToId = state.hoverSnap.targetId; c.attachedPort = state.hoverSnap.tPortId; c.myAttachedPort = state.hoverSnap.mPortId; }
                         if (state.hoverRopeSnap) { c.ropeSegment = state.hoverRopeSnap.segment; c.baseX = state.hoverRopeSnap.projX; c.baseY = state.hoverRopeSnap.projY; } else if (state.hoverSnap) { c.baseX = state.hoverSnap.tx; c.baseY = state.hoverSnap.ty; }
+
+                        // Compensa a userRotation subtraindo o novo ângulo calculado da corda.
+                        // Isso garante que o prusik não "pule" e mantenha a posição inalterável para o usuário.
+                        c.userRotation = prevAbsRot - c.getPrusikRopeAngle();
                     } else {
                         if (state.hoverSnap) { c.attachedToId = state.hoverSnap.targetId; c.attachedPort = state.hoverSnap.tPortId; c.myAttachedPort = state.hoverSnap.mPortId; c.baseX = state.hoverSnap.tx; c.baseY = state.hoverSnap.ty; } else if (state.hoverRopeSnap) { c.baseX = state.hoverRopeSnap.projX; c.baseY = state.hoverRopeSnap.projY; c.ropeSegment = state.hoverRopeSnap.segment; }
                     }
