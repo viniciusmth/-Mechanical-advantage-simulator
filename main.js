@@ -1,0 +1,944 @@
+const SUPABASE_URL = 'https://fqnhlkmaqtjmvdjdteel.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_msvyYeE2QMIdQ1AXWrktcA_5FBSANQf';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let sessionInterval = null;
+let currentSessionToken = null;
+
+const loginForm = document.getElementById('loginForm');
+const loginError = document.getElementById('loginError');
+const btnText = document.getElementById('btnText');
+const btnLoader = document.getElementById('btnLoader');
+
+function setFormState(loading) {
+    btnText.style.display = loading ? 'none' : 'block';
+    btnLoader.style.display = loading ? 'block' : 'none';
+    document.getElementById('loginBtn').disabled = loading;
+}
+
+function showError(msg) {
+    loginError.textContent = msg;
+    loginError.classList.remove('hidden');
+    setFormState(false);
+}
+
+async function getDeviceFingerprint() {
+    let storedId = localStorage.getItem('sim_vm_device_id');
+    if (storedId) {
+        return storedId;
+    }
+
+    const fp = await FingerprintJS.load();
+    const result = await fp.get();
+
+    localStorage.setItem('sim_vm_device_id', result.visitorId);
+
+    return result.visitorId;
+}
+
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setFormState(true);
+    loginError.classList.add('hidden');
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (authError) throw new Error("E-mail ou senha incorretos.");
+        const user = authData.user;
+
+        const deviceId = await getDeviceFingerprint();
+
+        const { data: devices, error: devError } = await supabaseClient.from('user_devices').select('*').eq('user_id', user.id);
+        if (devError) throw new Error("Erro ao verificar dispositivos.");
+
+        const deviceExists = devices.some(d => d.fingerprint === deviceId);
+
+        if (!deviceExists) {
+            if (devices.length >= 2) {
+                await supabaseClient.auth.signOut();
+                throw new Error("Limite atingido: Esta conta já possui 2 dispositivos registrados.");
+            } else {
+                const { error: insertDevError } = await supabaseClient.from('user_devices').insert({ user_id: user.id, fingerprint: deviceId });
+                if (insertDevError) throw new Error("Erro ao registrar novo dispositivo.");
+            }
+        }
+
+        currentSessionToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        const { error: sessionError } = await supabaseClient.from('user_sessions').upsert({
+            user_id: user.id,
+            session_token: currentSessionToken,
+            updated_at: new Date().toISOString()
+        });
+
+        if (sessionError) throw new Error("Erro ao registrar a sessão.");
+
+        localStorage.setItem('sim_vm_session_token', currentSessionToken);
+
+        startSessionMonitor(user.id);
+        startSimulator();
+
+    } catch (error) {
+        showError(error.message);
+    }
+});
+
+function startSessionMonitor(userId) {
+    if (sessionInterval) clearInterval(sessionInterval);
+    sessionInterval = setInterval(async () => {
+        const { data, error } = await supabaseClient.from('user_sessions').select('session_token').eq('user_id', userId).single();
+
+        if (data && data.session_token !== currentSessionToken) {
+            clearInterval(sessionInterval);
+            localStorage.removeItem('sim_vm_session_token');
+            await supabaseClient.auth.signOut();
+
+            simulatorRunning = false;
+            document.getElementById('appContainer').classList.remove('flex');
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('loginScreen').style.display = 'flex';
+
+            showError("Sua conta fez login em outro dispositivo. Você foi desconectado.");
+        }
+    }, 10000);
+}
+
+document.getElementById('btnSair').addEventListener('click', async () => {
+    if (sessionInterval) clearInterval(sessionInterval);
+    localStorage.removeItem('sim_vm_session_token');
+    await supabaseClient.auth.signOut();
+    window.location.reload();
+});
+
+window.addEventListener('DOMContentLoaded', async () => {
+    const { data } = await supabaseClient.auth.getSession();
+    if (data.session) {
+        const user = data.session.user;
+        const localToken = localStorage.getItem('sim_vm_session_token');
+
+        if (localToken) {
+            const { data: sessionData } = await supabaseClient
+                .from('user_sessions')
+                .select('session_token')
+                .eq('user_id', user.id)
+                .single();
+
+            if (sessionData && sessionData.session_token === localToken) {
+                currentSessionToken = localToken;
+                startSessionMonitor(user.id);
+                startSimulator();
+                return;
+            }
+        }
+
+        localStorage.removeItem('sim_vm_session_token');
+        await supabaseClient.auth.signOut();
+    }
+});
+
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+let simulatorRunning = false;
+
+const state = {
+    width: window.innerWidth, height: window.innerHeight,
+    tool: 'select',
+    components: [], ropes: [],
+    selectedId: null, draggingId: null,
+    selectedRopeId: null,
+    isRotating: false,
+    dragOffset: { x: 0, y: 0 },
+    clickStartPos: { x: 0, y: 0 },
+    hasMoved: false,
+    hoverSnap: null, hoverRopeSnap: null,
+    ropePath: [], idCounter: 1,
+    isPullingHand: false,
+    handPrevNodePos: { x: 0, y: 0 },
+    handStartDist: 0,
+    activePullDist: 0,
+    globalLift: 0, currentLift: 0, targetLift: 0, loadWeight: 100,
+    isCaptured: false, forceRecalculate: true, showTMethod: true,
+    theoMA: 1, realMA: 1, ropeTensions: [], componentTensions: new Map(),
+    camera: { zoom: 1, panX: 0, panY: 0, isPanning: false, lastX: 0, lastY: 0 },
+    isPinching: false
+};
+
+function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    state.width = rect.width > 0 ? rect.width : window.innerWidth;
+    state.height = rect.height > 0 ? rect.height : window.innerHeight;
+    canvas.width = state.width * window.devicePixelRatio;
+    canvas.height = state.height * window.devicePixelRatio;
+}
+window.addEventListener('resize', resize);
+
+function showToast(msg, isError = false) {
+    const t = document.getElementById('statusToast');
+    t.textContent = msg;
+    t.className = `absolute top-[calc(1.5rem+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-2xl text-xs font-bold border backdrop-blur-md pointer-events-none transition-opacity shadow-2xl z-50 ${isError ? 'bg-red-950/95 text-red-400 border-red-500/30' : 'bg-rescue-900/95 text-emerald-400 border-emerald-500/30'}`;
+    t.classList.remove('opacity-0');
+    clearTimeout(t.timer);
+    t.timer = setTimeout(() => t.classList.add('opacity-0'), 2500);
+}
+
+document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('-translate-x-full');
+    document.getElementById('mobileOverlay').classList.remove('hidden');
+});
+document.getElementById('closeMenuBtn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.add('-translate-x-full');
+    document.getElementById('mobileOverlay').classList.add('hidden');
+});
+document.getElementById('mobileOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.add('-translate-x-full');
+    document.getElementById('mobileOverlay').classList.add('hidden');
+});
+
+document.getElementById('btnZoomIn').addEventListener('click', () => {
+    const newZoom = Math.min(4.0, state.camera.zoom * 1.3);
+    const cx = state.width / 2; const cy = state.height / 2;
+    state.camera.panX = cx - (cx - state.camera.panX) * (newZoom / state.camera.zoom);
+    state.camera.panY = cy - (cy - state.camera.panY) * (newZoom / state.camera.zoom);
+    state.camera.zoom = newZoom;
+});
+document.getElementById('btnZoomOut').addEventListener('click', () => {
+    const newZoom = Math.max(0.3, state.camera.zoom / 1.3);
+    const cx = state.width / 2; const cy = state.height / 2;
+    state.camera.panX = cx - (cx - state.camera.panX) * (newZoom / state.camera.zoom);
+    state.camera.panY = cy - (cy - state.camera.panY) * (newZoom / state.camera.zoom);
+    state.camera.zoom = newZoom;
+});
+
+const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+const dist = (p1, p2) => Math.hypot(p2.x - p1.x, p2.y - p1.y);
+function distToSegment(p, v, w) {
+    const l2 = (w.x - v.x) ** 2 + (w.y - v.y) ** 2;
+    if (l2 == 0) return dist(p, v);
+    let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return dist(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
+}
+
+class Component {
+    constructor(type, x, y) {
+        this.id = state.idCounter++;
+        this.type = type; this.baseX = x; this.baseY = y; this.x = x; this.y = y;
+        this.userRotation = 0; this.attachedToId = null; this.attachedPort = 0; this.myAttachedPort = 0;
+        this.ropeSegment = null; this.liftOffsetX = 0; this.liftOffsetY = 0;
+        this.currentAutoRotation = null;
+    }
+    getTotalRotation() {
+        if (this.currentAutoRotation !== null && this.currentAutoRotation !== undefined) return this.currentAutoRotation;
+        let parentRot = 0;
+        if (this.attachedToId) {
+            const parent = state.components.find(c => c.id === this.attachedToId);
+            if (parent && parent.type.startsWith('prusik')) parentRot = parent.getPrusikRopeAngle();
+        }
+        if (this.type.startsWith('prusik')) parentRot = this.getPrusikRopeAngle();
+        return parentRot + this.userRotation;
+    }
+    getPrusikRopeAngle() {
+        let angle = 0;
+        if (this.ropeSegment) {
+            const r = state.ropes.find(x => x.id === this.ropeSegment.ropeId);
+            if (r) {
+                const ropeNodes = getRopePositions(r);
+                if (ropeNodes.length > this.ropeSegment.index + 1) {
+                    const p1 = ropeNodes[this.ropeSegment.index].pos; const p2 = ropeNodes[this.ropeSegment.index + 1].pos;
+                    angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                }
+            }
+        } return angle + Math.PI / 2;
+    }
+    getLocalPorts() {
+        if (this.type === 'rigplate') return [{ id: 0, x: -25, y: 15 }, { id: 1, x: 0, y: 18 }, { id: 2, x: 25, y: 15 }];
+        if (this.type === 'anchor') return [{ id: 0, x: 0, y: 0 }];
+        if (this.type === 'load') return [{ id: 0, x: 0, y: -35 }];
+        if (this.type === 'carabiner') return [{ id: 0, x: 0, y: 16 }, { id: 1, x: 0, y: -16 }];
+        if (this.type === 'pulley_single') return [{ id: 0, x: 0, y: -20 }, { id: 1, x: 0, y: 28 }];
+        if (this.type === 'pulley_double') return [{ id: 0, x: 0, y: -20 }, { id: 1, x: 0, y: 25 }];
+        if (this.type.startsWith('prusik')) return [{ id: 0, x: 0, y: 35 }];
+        if (this.type === 'knot_eight') return [{ id: 0, x: 0, y: 20 }];
+        return [{ id: 0, x: 0, y: 0 }];
+    }
+    getRotatedPorts() {
+        const ports = this.getLocalPorts(); const totalRot = this.getTotalRotation();
+        const cos = Math.cos(totalRot); const sin = Math.sin(totalRot);
+        return ports.map(p => ({ id: p.id, gx: p.x * cos - p.y * sin, gy: p.x * sin + p.y * cos, isAttached: false }));
+    }
+}
+class Rope { constructor() { this.id = state.idCounter++; this.nodes = []; } }
+
+const getScreenToWorld = (screenX, screenY) => ({ x: (screenX - state.camera.panX) / state.camera.zoom, y: (screenY - state.camera.panY) / state.camera.zoom });
+const getPos = (e) => {
+    const rect = canvas.getBoundingClientRect(); let cx = e.clientX, cy = e.clientY;
+    if (e.touches && e.touches.length > 0) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+    return getScreenToWorld(cx - rect.left, cy - rect.top);
+};
+const findComponentAt = (p) => [...state.components].reverse().find(c => dist(c, p) < 30);
+const findRopeAt = (p) => {
+    for (let rope of state.ropes) {
+        const rNodes = getRopePositions(rope);
+        for (let i = 0; i < rNodes.length - 1; i++) if (distToSegment(p, rNodes[i].pos, rNodes[i + 1].pos) < 15) return rope.id;
+    } return null;
+};
+
+const getNodePos = (c, pass) => {
+    if (c.type === 'pulley_single') { const rot = c.getTotalRotation(); return { x: c.x - 28 * Math.sin(rot), y: c.y + 28 * Math.cos(rot) }; }
+    if (c.type === 'pulley_double') { const rot = c.getTotalRotation(); const offX = pass === 0 ? -7 : 7; return { x: c.x + offX * Math.cos(rot), y: c.y + offX * Math.sin(rot) }; }
+    if (c.type === 'knot_eight') { const rot = c.getTotalRotation(); return { x: c.x + 25 * Math.sin(rot), y: c.y - 25 * Math.cos(rot) }; }
+    return { x: c.x, y: c.y };
+};
+const getRopePositions = (rope) => {
+    let counts = {};
+    return rope.nodes.map(id => {
+        let c = state.components.find(x => x.id === id); if (!c) return { c: null, pass: 0, pos: { x: 0, y: 0 } };
+        let pass = counts[id] || 0; counts[id] = pass + 1; return { c, pass, pos: getNodePos(c, pass) };
+    });
+};
+function centerCameraOnPreset(centerX, centerY) { state.camera.panX = (state.width / 2) - (centerX * state.camera.zoom); state.camera.panY = (state.height / 2) - (centerY * state.camera.zoom); }
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const type = btn.dataset.preset;
+        if (type === '3:1') loadPreset3to1(); else if (type === '5:1') loadPreset5to1(); else if (type === '6:1') loadPreset6to1();
+        if (window.innerWidth < 768) document.getElementById('closeMenuBtn').click();
+    });
+});
+
+function loadPreset3to1() {
+    document.getElementById('btnClear').click(); const cx = 0, cy = -40;
+    const anchor = new Component('rigplate', cx, cy - 160); const load = new Component('load', cx, cy + 300);
+    const carAnchor = new Component('carabiner', cx, cy - 10); const carAnchor2 = new Component('carabiner', cx, cy - 60); const carAnchor3 = new Component('carabiner', cx, cy); const carAnchor4 = new Component('carabiner', cx + 30, cy + 50);
+    const pulleyLoad = new Component('pulley_single', cx, cy + 20); const pulleyLoad2 = new Component('pulley_single', cx, cy + 20); const pulleyLoad3 = new Component('pulley_single', cx, cy);
+    const prusik = new Component('prusik_capture', cx, cy); const prusikReset = new Component('prusik_tractor', cx, cy);
+    const hand = new Component('hand', cx + 160, cy + 60); const eight = new Component('knot_eight', cx + 160, cy + 60);
+    carAnchor.attachedToId = anchor.id; carAnchor.userRotation = Math.PI; eight.attachedToId = carAnchor2.id; eight.attachedPort = 1;
+    prusik.attachedToId = carAnchor.id; prusikReset.userRotation = 200; pulleyLoad.attachedToId = carAnchor.id; pulleyLoad.attachedPort = 1;
+    pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 0;
+    carAnchor2.attachedToId = load.id; carAnchor3.attachedToId = anchor.id; carAnchor3.attachedPort = 2; carAnchor3.userRotation = Math.PI; carAnchor4.attachedToId = prusikReset.id; carAnchor4.userRotation = Math.PI / 2;
+    state.components.push(anchor, load, carAnchor, carAnchor2, carAnchor3, carAnchor4, pulleyLoad, pulleyLoad2, pulleyLoad3, prusik, prusikReset, hand, eight);
+    const r = new Rope(); r.nodes = [eight.id, pulleyLoad.id, pulleyLoad3.id, pulleyLoad2.id, hand.id]; state.ropes.push(r);
+    prusik.ropeSegment = { ropeId: r.id, index: 0, ratio: 1, targetRatio: 1 }; prusikReset.ropeSegment = { ropeId: r.id, index: 0, ratio: 0.3, targetRatio: 0.3 };
+    centerCameraOnPreset(cx, cy); state.forceRecalculate = true; showToast("Preset 3:1 (Z-Rig) carregado com sucesso!");
+}
+
+function loadPreset5to1() {
+    document.getElementById('btnClear').click(); const cx = 0, cy = -40;
+    const anchor = new Component('rigplate', cx, cy - 160); const load = new Component('load', cx, cy + 300);
+    const carAnchor = new Component('carabiner', cx, cy - 10); const carAnchor2 = new Component('carabiner', cx, cy - 60); const carAnchor3 = new Component('carabiner', cx, cy); const carAnchor4 = new Component('carabiner', cx + 30, cy + 50); const carAnchor5 = new Component('carabiner', cx - 30, cy + 80);
+    const pulleyLoad = new Component('pulley_single', cx, cy + 20); const pulleyLoad2 = new Component('pulley_double', cx, cy + 20); const pulleyLoad3 = new Component('pulley_double', cx + 40, cy + 50);
+    const prusik = new Component('prusik_capture', cx, cy); const prusikReset = new Component('prusik_tractor', cx, cy);
+    const hand = new Component('hand', cx + 160, cy + 60); const eight = new Component('knot_eight', cx + 160, cy + 60);
+    carAnchor.attachedToId = anchor.id; carAnchor.userRotation = Math.PI; eight.attachedToId = carAnchor2.id; eight.attachedPort = 1;
+    prusik.attachedToId = carAnchor.id; prusikReset.userRotation = 200; pulleyLoad.attachedToId = carAnchor.id; pulleyLoad.attachedPort = 1;
+    pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 0;
+    carAnchor2.attachedToId = load.id; carAnchor3.attachedToId = anchor.id; carAnchor3.attachedPort = 2; carAnchor3.userRotation = Math.PI; carAnchor4.attachedToId = prusikReset.id; carAnchor4.userRotation = Math.PI / 2; carAnchor5.attachedToId = load.id;
+    state.components.push(anchor, load, carAnchor, carAnchor2, carAnchor3, carAnchor4, carAnchor5, pulleyLoad, pulleyLoad2, pulleyLoad3, prusik, prusikReset, hand, eight);
+    const r = new Rope(); r.nodes = [eight.id, pulleyLoad.id, pulleyLoad3.id, pulleyLoad2.id, pulleyLoad3.id, pulleyLoad2.id, hand.id]; state.ropes.push(r);
+    prusik.ropeSegment = { ropeId: r.id, index: 0, ratio: 1, targetRatio: 1 }; prusikReset.ropeSegment = { ropeId: r.id, index: 0, ratio: 0.3, targetRatio: 0.3 };
+    centerCameraOnPreset(cx, cy); state.forceRecalculate = true; showToast("Preset 5:1 carregado com sucesso!");
+}
+
+function loadPreset6to1() {
+    document.getElementById('btnClear').click(); const cx = 0, cy = -40;
+    const anchor = new Component('rigplate', cx, cy - 160); const load = new Component('load', cx, cy + 300);
+    const carAnchor = new Component('carabiner', cx, cy - 10); const carAnchor2 = new Component('carabiner', cx, cy - 60); const carAnchor3 = new Component('carabiner', cx, cy); const carAnchor4 = new Component('carabiner', cx + 30, cy + 50); const carAnchor5 = new Component('carabiner', cx - 30, cy + 80); const carAnchor6 = new Component('carabiner', cx + 60, cy + 110);
+    const pulleyLoad = new Component('pulley_single', cx, cy + 20); const pulleyLoad2 = new Component('pulley_double', cx, cy + 20); const pulleyLoad3 = new Component('pulley_single', cx + 40, cy + 50);
+    const prusik = new Component('prusik_capture', cx, cy); const prusikReset = new Component('prusik_tractor', cx, cy);
+    const hand = new Component('hand', cx + 160, cy + 60); const eight = new Component('knot_eight', cx + 160, cy + 60);
+    carAnchor.attachedToId = anchor.id; carAnchor.userRotation = Math.PI; eight.attachedToId = carAnchor.id; eight.attachedPort = 1; eight.userRotation = Math.PI;
+    prusik.attachedToId = carAnchor3.id; prusikReset.userRotation = Math.PI / -1.5; pulleyLoad.attachedToId = carAnchor2.id; pulleyLoad.attachedPort = 1; pulleyLoad.userRotation = Math.PI;
+    pulleyLoad2.attachedToId = carAnchor3.id; pulleyLoad2.attachedPort = 1; pulleyLoad3.attachedToId = carAnchor4.id; pulleyLoad3.attachedPort = 1; pulleyLoad3.myAttachedPort = 0;
+    carAnchor2.attachedToId = load.id; carAnchor3.attachedToId = anchor.id; carAnchor3.attachedPort = 2; carAnchor3.userRotation = Math.PI; carAnchor4.attachedToId = prusikReset.id; carAnchor4.userRotation = -200; carAnchor5.attachedToId = load.id; carAnchor6.attachedToId = load.id;
+    state.components.push(anchor, load, carAnchor, carAnchor2, carAnchor3, carAnchor4, carAnchor5, carAnchor6, pulleyLoad, pulleyLoad2, pulleyLoad3, prusik, prusikReset, hand, eight);
+    const r = new Rope(); r.nodes = [eight.id, pulleyLoad.id, pulleyLoad2.id, pulleyLoad3.id, pulleyLoad2.id, hand.id]; state.ropes.push(r);
+    prusik.ropeSegment = { ropeId: r.id, index: 1, ratio: 1, targetRatio: 1 }; prusikReset.ropeSegment = { ropeId: r.id, index: 1, ratio: 0.3, targetRatio: 0.3 };
+    centerCameraOnPreset(cx, cy); state.forceRecalculate = true; showToast("Preset 6:1 carregado com sucesso!");
+}
+
+document.querySelectorAll('.comp-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        const cx = (state.width / 2 - state.camera.panX) / state.camera.zoom + (Math.random() * 40 - 20); const cy = (state.height / 2 - state.camera.panY) / state.camera.zoom + (Math.random() * 40 - 20);
+        const c = new Component(type, cx, cy);
+        if (type === 'rigplate' || type === 'anchor') c.baseY = cy; if (type === 'load') c.baseY = cy + 150;
+        state.components.push(c); showToast(`${type.toUpperCase().replace('_', ' ')} adicionado.`); state.forceRecalculate = true;
+        if (window.innerWidth < 768) document.getElementById('closeMenuBtn').click();
+    });
+});
+
+document.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active'); state.tool = btn.dataset.tool; state.ropePath = []; showToast(`Modo: ${state.tool === 'select' ? 'Selecionar' : 'Passar Corda'}`);
+        if (window.innerWidth < 768) document.getElementById('closeMenuBtn').click();
+    });
+});
+
+canvas.addEventListener('wheel', e => {
+    e.preventDefault(); const rect = canvas.getBoundingClientRect(); const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top;
+    const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15; const newZoom = Math.max(0.3, Math.min(4.0, state.camera.zoom * zoomFactor));
+    state.camera.panX = mouseX - (mouseX - state.camera.panX) * (newZoom / state.camera.zoom); state.camera.panY = mouseY - (mouseY - state.camera.panY) * (newZoom / state.camera.zoom);
+    state.camera.zoom = newZoom;
+}, { passive: false });
+
+let initialPinchDist = 0;
+let initialPinchZoom = 1;
+let pinchCenter = { x: 0, y: 0 };
+let initialPanX = 0;
+let initialPanY = 0;
+
+canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+        e.preventDefault();
+        state.isPinching = true;
+        state.camera.isPanning = false;
+        state.draggingId = null;
+
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        initialPinchDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        initialPinchZoom = state.camera.zoom;
+
+        const rect = canvas.getBoundingClientRect();
+        pinchCenter = {
+            x: ((t1.clientX + t2.clientX) / 2) - rect.left,
+            y: ((t1.clientY + t2.clientY) / 2) - rect.top
+        };
+        initialPanX = state.camera.panX;
+        initialPanY = state.camera.panY;
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+    if (state.isPinching && e.touches.length === 2) {
+        e.preventDefault();
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
+        if (initialPinchDist > 0) {
+            const zoomFactor = currentDist / initialPinchDist;
+            const newZoom = Math.max(0.3, Math.min(4.0, initialPinchZoom * zoomFactor));
+
+            state.camera.panX = pinchCenter.x - (pinchCenter.x - initialPanX) * (newZoom / initialPinchZoom);
+            state.camera.panY = pinchCenter.y - (pinchCenter.y - initialPanY) * (newZoom / initialPinchZoom);
+            state.camera.zoom = newZoom;
+        }
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+    if (e.touches.length < 2) {
+        state.isPinching = false;
+    }
+});
+
+canvas.addEventListener('pointerdown', e => {
+    if (state.isPinching) return;
+    document.activeElement.blur(); const rect = canvas.getBoundingClientRect(); const clientX = e.clientX - rect.left; const clientY = e.clientY - rect.top; const p = getPos(e);
+
+    if (e.button === 1 || (e.button === 0 && e.altKey)) { state.camera.isPanning = true; state.camera.lastX = clientX; state.camera.lastY = clientY; return; }
+
+    if (state.selectedId && state.tool === 'select') {
+        const sel = state.components.find(c => c.id === state.selectedId);
+        if (sel && !['load', 'hand'].includes(sel.type)) {
+            const rot = sel.getTotalRotation(); const hx = sel.x + Math.sin(rot) * 50; const hy = sel.y - Math.cos(rot) * 50;
+            if (dist(p, { x: hx, y: hy }) < 25) { state.isRotating = true; state.draggingId = sel.id; return; }
+        }
+    }
+
+    const clickedComp = findComponentAt(p);
+    const clickedRope = findRopeAt(p);
+
+    if (state.tool === 'select') {
+        if (clickedComp) {
+            state.selectedRopeId = null;
+            if (clickedComp.type === 'hand') {
+                state.isPullingHand = true; state.activePullDist = 0; state.draggingId = clickedComp.id;
+                const rope = state.ropes.find(r => r.nodes.includes(clickedComp.id));
+                if (rope && rope.nodes.length >= 2) {
+                    const prevNodeId = rope.nodes[rope.nodes.length - 2]; const prevNode = state.components.find(c => c.id === prevNodeId);
+                    if (prevNode) { state.handPrevNodePos = { x: prevNode.x, y: prevNode.y }; } else { state.handPrevNodePos = { x: p.x, y: p.y }; }
+                } else { state.handPrevNodePos = { x: p.x, y: p.y }; }
+                state.handStartDist = dist(p, state.handPrevNodePos);
+                state.components.forEach(c => { if (c.type.startsWith('prusik') && c.ropeSegment) c.ropeSegment.startRatio = c.ropeSegment.ratio; });
+                state.clickStartPos = { x: p.x, y: p.y }; state.hasMoved = false;
+            } else {
+                state.selectedId = clickedComp.id; state.draggingId = clickedComp.id; state.isRotating = false; state.clickStartPos = { x: p.x, y: p.y }; state.hasMoved = false;
+                clickedComp.baseX = clickedComp.x; clickedComp.baseY = clickedComp.y; state.dragOffset = { x: p.x - clickedComp.x, y: p.y - clickedComp.y };
+            }
+        } else {
+            state.selectedId = null;
+            state.selectedRopeId = clickedRope;
+            if (!clickedRope) {
+                state.camera.isPanning = true;
+                state.camera.lastX = clientX;
+                state.camera.lastY = clientY;
+            }
+        }
+    } else if (state.tool === 'rope') {
+        if (clickedComp && ['pulley_single', 'pulley_double', 'knot_eight', 'load', 'anchor', 'rigplate'].includes(clickedComp.type)) {
+            let occurrences = state.ropePath.filter(id => id === clickedComp.id).length;
+            let maxOccur = clickedComp.type === 'pulley_double' ? 2 : 2;
+            if (occurrences < maxOccur) { state.ropePath.push(clickedComp.id); showToast(`Corda conectada: ${clickedComp.type.replace('_', ' ')}`); } else { showToast(`Limite de conexões atingido!`, true); }
+        } else if (state.ropePath.length > 0) {
+            const hand = new Component('hand', p.x, p.y); state.components.push(hand); state.ropePath.push(hand.id);
+            let r = new Rope(); r.nodes = [...state.ropePath]; state.ropes.push(r); state.ropePath = []; state.forceRecalculate = true; showToast("Corda Finalizada!"); document.getElementById('toolSelect').click();
+        } else {
+            state.camera.isPanning = true;
+            state.camera.lastX = clientX;
+            state.camera.lastY = clientY;
+        }
+    }
+});
+
+canvas.addEventListener('pointermove', e => {
+    if (state.isPinching) return;
+    const rect = canvas.getBoundingClientRect(); const clientX = e.clientX - rect.left; const clientY = e.clientY - rect.top;
+    if (state.camera.isPanning) { state.camera.panX += clientX - state.camera.lastX; state.camera.panY += clientY - state.camera.lastY; state.camera.lastX = clientX; state.camera.lastY = clientY; return; }
+
+    if (state.draggingId && state.tool === 'select') {
+        const c = state.components.find(x => x.id === state.draggingId); if (!c) return; const p = getPos(e);
+
+        if (!state.hasMoved) {
+            if (Math.hypot(p.x - state.clickStartPos.x, p.y - state.clickStartPos.y) > 5) {
+                state.hasMoved = true;
+                if (c.type !== 'hand') {
+                    // Se for um prusik trator na corda, seguramos o detach para que ele deslize!
+                    if (!(c.type === 'prusik_tractor' && c.ropeSegment)) {
+                        const prevAbsRot = c.getTotalRotation();
+                        if (c.attachedToId) c.attachedToId = null;
+                        if (c.ropeSegment) c.ropeSegment = null;
+                        if (c.type.startsWith('prusik')) {
+                            c.userRotation = prevAbsRot - c.getPrusikRopeAngle();
+                        }
+                    }
+                }
+                if (c.type === 'load') { c.baseX = c.x - (c.liftOffsetX || 0); c.baseY = c.y - (c.liftOffsetY || 0); }
+                else { c.baseX = c.x; c.baseY = c.y; }
+            } else return;
+        }
+
+        if (state.isPullingHand && c.type === 'hand') {
+            let currentDist = dist(p, state.handPrevNodePos); let pullAmt = Math.max(0, currentDist - state.handStartDist); let maxPull = Infinity;
+            state.components.forEach(tr => {
+                if (tr.type === 'prusik_tractor' && tr.ropeSegment) {
+                    const r = state.ropes.find(x => x.id === tr.ropeSegment.ropeId);
+                    if (r) {
+                        const rNodes = getRopePositions(r);
+                        if (rNodes.length > tr.ropeSegment.index + 1) {
+                            const segmentLen = dist(rNodes[tr.ropeSegment.index].pos, rNodes[tr.ropeSegment.index + 1].pos) || 1;
+                            let startR = tr.ropeSegment.startRatio !== undefined ? tr.ropeSegment.startRatio : tr.ropeSegment.ratio;
+                            let availableStroke = Math.max(0, (0.95 - startR) * segmentLen);
+                            if (availableStroke < maxPull) maxPull = availableStroke;
+                        }
+                    }
+                }
+            });
+            if (pullAmt > maxPull) { pullAmt = maxPull; const constrainedDist = state.handStartDist + maxPull; const angle = Math.atan2(p.y - state.handPrevNodePos.y, p.x - state.handPrevNodePos.x); p.x = state.handPrevNodePos.x + Math.cos(angle) * constrainedDist; p.y = state.handPrevNodePos.y + Math.sin(angle) * constrainedDist; }
+            state.activePullDist = pullAmt; c.baseX = p.x; c.baseY = p.y; return;
+        }
+
+        if (state.isRotating) {
+            let angle = Math.atan2(p.y - c.y, p.x - c.x) + Math.PI / 2; let parentRot = 0;
+            if (c.attachedToId) { const parent = state.components.find(x => x.id === c.attachedToId); if (parent && parent.type.startsWith('prusik')) parentRot = parent.getPrusikRopeAngle(); } else if (c.type.startsWith('prusik')) parentRot = c.getPrusikRopeAngle();
+            c.userRotation = angle - parentRot; state.forceRecalculate = true; return;
+        }
+
+        // MODO SLIDER: Deslizar o prusik trator na corda
+        if (c.type === 'prusik_tractor' && c.ropeSegment) {
+            const r = state.ropes.find(x => x.id === c.ropeSegment.ropeId);
+            if (r) {
+                const rNodes = getRopePositions(r);
+                if (rNodes.length > c.ropeSegment.index + 1) {
+                    const p1 = rNodes[c.ropeSegment.index].pos;
+                    const p2 = rNodes[c.ropeSegment.index + 1].pos;
+                    const l2 = Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2);
+                    if (l2 > 0) {
+                        let t = ((p.x - p1.x) * (p2.x - p1.x) + (p.y - p1.y) * (p2.y - p1.y)) / l2;
+                        const projX = p1.x + t * (p2.x - p1.x);
+                        const projY = p1.y + t * (p2.y - p1.y);
+                        const distToLine = Math.hypot(p.x - projX, p.y - projY);
+
+                        // Se puxar muito para o lado (> 60px), aí sim desconecta!
+                        if (distToLine > 60) {
+                            const prevAbsRot = c.getTotalRotation();
+                            c.ropeSegment = null;
+                            c.userRotation = prevAbsRot - c.getPrusikRopeAngle();
+                            c.baseX = p.x - state.dragOffset.x;
+                            c.baseY = p.y - state.dragOffset.y;
+                        } else {
+                            // Continua deslizando pela corda
+                            t = Math.max(0.05, Math.min(0.95, t));
+                            c.ropeSegment.targetRatio = t;
+                            c.ropeSegment.startRatio = t; // Reseta o curso!
+                            state.forceRecalculate = true;
+                            return; // Interrompe para não ficar calculando snaps soltos
+                        }
+                    }
+                }
+            }
+        }
+
+        if (c.type === 'load') { c.baseX = p.x - state.dragOffset.x - (c.liftOffsetX || 0); c.baseY = p.y - state.dragOffset.y - (c.liftOffsetY || 0); }
+        else { c.baseX = p.x - state.dragOffset.x; c.baseY = p.y - state.dragOffset.y; }
+
+        let bestSnap = null; let bestRopeSnap = null; let closestDist = Infinity;
+        // Restante do código original que faz loop verificando Snaps...
+        if (c.type.startsWith('prusik')) {
+            for (let rope of state.ropes) {
+                const rNodes = getRopePositions(rope);
+                for (let i = 0; i < rNodes.length - 1; i++) {
+                    const p1 = rNodes[i].pos; const p2 = rNodes[i + 1].pos; const l2 = Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2); if (l2 === 0) continue;
+                    const t = ((c.baseX - p1.x) * (p2.x - p1.x) + (c.baseY - p1.y) * (p2.y - p1.y)) / l2;
+                    if (t > 0.05 && t < 0.95) {
+                        const projX = p1.x + t * (p2.x - p1.x); const projY = p1.y + t * (p2.y - p1.y);
+                        if (dist({ x: c.baseX, y: c.baseY }, { x: projX, y: projY }) < 40) { bestRopeSnap = { projX, projY, segment: { ropeId: rope.id, index: i, ratio: t, targetRatio: t } }; break; }
+                    }
+                } if (bestRopeSnap) break;
+            }
+        }
+
+        for (let target of state.components) {
+            if (target.id === c.id) continue;
+
+            let isChild = false;
+            let curr = target;
+            let iterSafe = 0;
+            while (curr && curr.attachedToId && iterSafe < 20) {
+                if (curr.attachedToId === c.id) { isChild = true; break; }
+                curr = state.components.find(x => x.id === curr.attachedToId);
+                iterSafe++;
+            }
+            if (isChild) continue;
+
+            const tPorts = target.getRotatedPorts(); const myPorts = c.getRotatedPorts();
+            for (let tPort of tPorts) {
+                for (let mPort of myPorts) {
+                    const d = Math.hypot((target.x + tPort.gx) - (c.x + mPort.gx), (target.y + tPort.gy) - (c.y + mPort.gy));
+                    let threshold = c.type.startsWith('prusik') && target.type === 'carabiner' ? 120 : 25;
+                    if (d < threshold && d < closestDist) {
+                        let canSnap = false; const isDirectToAnchorOrLoad = (['anchor', 'rigplate', 'load'].includes(target.type)); const isRestrictedType = (['pulley_single', 'pulley_double', 'knot_eight'].includes(c.type) || c.type.startsWith('prusik'));
+                        if (isDirectToAnchorOrLoad && isRestrictedType) { canSnap = false; } else {
+                            if (target.type === 'carabiner') { const alreadyAttachedToTargetPort = state.components.some(other => other.attachedToId === target.id && other.attachedPort === tPort.id && other.id !== c.id); if (alreadyAttachedToTargetPort) continue; }
+                            if (c.type === 'carabiner' && ['rigplate', 'anchor', 'load', 'carabiner', 'prusik_tractor', 'prusik_capture', 'knot_eight'].includes(target.type)) canSnap = true;
+                            if (c.type === 'knot_eight' && target.type === 'carabiner') canSnap = true;
+                            if (['pulley_single', 'pulley_double'].includes(c.type) && target.type === 'carabiner') canSnap = true;
+                            if (c.type.startsWith('prusik') && target.type === 'carabiner') canSnap = true;
+                        }
+                        if (canSnap) { closestDist = d; bestSnap = { targetId: target.id, tPortId: tPort.id, mPortId: mPort.id, tx: target.x + tPort.gx - mPort.gx, ty: target.y + tPort.gy - mPort.gy, gx: target.x + tPort.gx, gy: target.y + tPort.gy }; }
+                    }
+                }
+            }
+        }
+        state.hoverSnap = bestSnap; state.hoverRopeSnap = bestRopeSnap; state.forceRecalculate = true;
+    }
+});
+
+window.addEventListener('pointerup', () => {
+    if (state.isPinching) return;
+    state.camera.isPanning = false;
+    if (state.draggingId && state.tool === 'select' && state.hasMoved && !state.isPullingHand) {
+        const c = state.components.find(x => x.id === state.draggingId);
+        if (c) {
+            // Captura a rotação total visual antes de qualquer conexão nova
+            const prevAbsRot = c.getTotalRotation();
+
+            if (c.type.startsWith('prusik')) {
+                if (state.hoverSnap) { c.attachedToId = state.hoverSnap.targetId; c.attachedPort = state.hoverSnap.tPortId; c.myAttachedPort = state.hoverSnap.mPortId; }
+                if (state.hoverRopeSnap) { c.ropeSegment = state.hoverRopeSnap.segment; c.baseX = state.hoverRopeSnap.projX; c.baseY = state.hoverRopeSnap.projY; } else if (state.hoverSnap) { c.baseX = state.hoverSnap.tx; c.baseY = state.hoverSnap.ty; }
+
+                // Compensa a userRotation subtraindo o novo ângulo calculado da corda.
+                // Isso garante que o prusik não "pule" e mantenha a posição inalterável para o usuário.
+                c.userRotation = prevAbsRot - c.getPrusikRopeAngle();
+            } else {
+                if (state.hoverSnap) { c.attachedToId = state.hoverSnap.targetId; c.attachedPort = state.hoverSnap.tPortId; c.myAttachedPort = state.hoverSnap.mPortId; c.baseX = state.hoverSnap.tx; c.baseY = state.hoverSnap.ty; } else if (state.hoverRopeSnap) { c.baseX = state.hoverRopeSnap.projX; c.baseY = state.hoverRopeSnap.projY; c.ropeSegment = state.hoverRopeSnap.segment; }
+            }
+        }
+    }
+    state.hoverSnap = null; state.hoverRopeSnap = null;
+    if (state.isPullingHand) {
+        if (state.isCaptured) {
+            state.globalLift += (state.activePullDist / (state.realMA || 1)); showToast("Carga Travada!", false);
+            state.components.forEach(c => { if (c.type === 'prusik_tractor' && c.ropeSegment) { c.ropeSegment.ratio = c.ropeSegment.targetRatio; c.ropeSegment.startRatio = c.ropeSegment.ratio; } });
+        } else { showToast("ALERTA: Queda Livre! Captura inativa.", true); state.globalLift = 0; }
+        state.activePullDist = 0;
+        const hand = state.components.find(c => c.id === state.draggingId);
+        if (hand) {
+            const rope = state.ropes.find(r => r.nodes.includes(hand.id));
+            if (rope && rope.nodes.length > 1) {
+                const prevNodeId = rope.nodes[rope.nodes.length - 2]; const prevNode = state.components.find(c => c.id === prevNodeId);
+                if (prevNode) { hand.baseX = prevNode.x + 50; hand.baseY = prevNode.y + 100; }
+            }
+        }
+    }
+    state.isPullingHand = false; state.draggingId = null; state.isRotating = false; state.forceRecalculate = true;
+});
+
+function deleteSelectedItem() {
+    if (state.selectedId) {
+        const idToRemove = state.selectedId;
+        state.components = state.components.filter(c => c.id !== idToRemove);
+        state.components.forEach(c => { if (c.attachedToId === idToRemove) { c.attachedToId = null; c.baseX = c.x; c.baseY = c.y; } });
+        state.ropes.forEach(r => r.nodes = r.nodes.filter(nid => nid !== idToRemove)); state.ropes = state.ropes.filter(r => r.nodes.length >= 2);
+        state.components.forEach(c => { if (c.ropeSegment && (!state.ropes.find(r => r.id === c.ropeSegment.ropeId) || c.ropeSegment.index >= state.ropes.find(r => r.id === c.ropeSegment.ropeId).nodes.length - 1)) { c.ropeSegment = null; } });
+        state.selectedId = null; state.forceRecalculate = true; showToast("Componente Excluído");
+    } else if (state.selectedRopeId) {
+        removeRope(state.selectedRopeId);
+    } else {
+        showToast("Nenhum item selecionado", true);
+    }
+}
+
+window.addEventListener('keydown', (e) => {
+    if (e.target.tagName.toLowerCase() === 'input') return;
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (state.selectedId || state.selectedRopeId) {
+            e.preventDefault();
+            deleteSelectedItem();
+        }
+    }
+});
+
+document.getElementById('btnDeleteMobile').addEventListener('click', deleteSelectedItem);
+
+function removeRope(ropeId) {
+    state.ropes = state.ropes.filter(r => r.id !== ropeId);
+    state.components.forEach(c => { if (c.ropeSegment && c.ropeSegment.ropeId === ropeId) c.ropeSegment = null; });
+    state.components = state.components.filter(c => c.type !== 'hand' || state.ropes.some(r => r.nodes.includes(c.id)));
+    state.selectedRopeId = null; state.globalLift = 0; state.currentLift = 0; state.forceRecalculate = true; showToast("Corda Removida");
+}
+document.getElementById('btnClearRopes').addEventListener('click', () => { state.ropes = []; state.components.forEach(c => { if (c.type === 'prusik_tractor' || c.type === 'prusik_capture') c.ropeSegment = null; }); state.components = state.components.filter(c => c.type !== 'hand'); state.selectedRopeId = null; state.globalLift = 0; state.currentLift = 0; state.activePullDist = 0; state.forceRecalculate = true; showToast("Todas as Cordas Removidas"); });
+document.getElementById('btnClear').addEventListener('click', () => { state.components = []; state.ropes = []; state.globalLift = 0; state.currentLift = 0; state.activePullDist = 0; state.selectedId = null; state.selectedRopeId = null; state.forceRecalculate = true; showToast("Canvas Limpo"); });
+document.getElementById('inputWeight').addEventListener('input', e => { state.loadWeight = parseFloat(e.target.value) || 0; state.forceRecalculate = true; });
+document.getElementById('toggleTMethod').addEventListener('change', e => { state.showTMethod = e.target.checked; state.forceRecalculate = true; });
+document.getElementById('btnResetStroke').addEventListener('click', () => {
+    let prusikFound = false;
+    state.components.forEach(c => {
+        if (c.type === 'prusik_tractor' && c.ropeSegment) {
+            c.ropeSegment.targetRatio = 0.05; // Reset completo em 1 clique
+            c.ropeSegment.startRatio = 0.05;  // Prepara a referência pro próximo tracionamento
+            prusikFound = true;
+        }
+    });
+    if (prusikFound) showToast("Curso do Prusik Resetado");
+    else showToast("Nenhum Prusik Trator na corda.", true);
+});
+
+function traceToAnchor(cId, visited = new Set()) {
+    if (!cId || visited.has(cId)) return false; visited.add(cId); const c = state.components.find(x => x.id === cId);
+    if (!c) return false; if (c.type === 'anchor' || c.type === 'rigplate') return true; return traceToAnchor(c.attachedToId, visited);
+}
+
+function updatePhysics() {
+    const strokeLift = state.isPullingHand ? (state.activePullDist / (state.realMA || 1)) : 0; state.targetLift = state.globalLift + strokeLift; state.isCaptured = false;
+    for (let c of state.components) { if (c.type === 'prusik_capture' && c.ropeSegment && c.attachedToId) { if (traceToAnchor(c.attachedToId)) { state.isCaptured = true; break; } } }
+    const lockIcon = document.getElementById('uiLock'); if (state.isCaptured) { lockIcon.innerHTML = '<i class="fa-solid fa-lock text-emerald-400"></i>'; } else { lockIcon.innerHTML = '<i class="fa-solid fa-unlock text-red-500"></i>'; }
+    if (!state.isPullingHand && !state.isCaptured) state.targetLift = 0; state.currentLift = lerp(state.currentLift, state.targetLift, 0.15);
+    state.components.forEach(c => {
+        if (c.type.startsWith('pulley')) {
+            let fx = 0, fy = 0; let hasForce = false;
+            state.ropes.forEach(r => {
+                for (let i = 0; i < r.nodes.length; i++) {
+                    if (r.nodes[i] === c.id) {
+                        if (i > 0) { const prev = state.components.find(x => x.id === r.nodes[i - 1]); if (prev) { const dx = prev.x - c.x, dy = prev.y - c.y; const len = Math.hypot(dx, dy) || 1; fx += dx / len; fy += dy / len; hasForce = true; } }
+                        if (i < r.nodes.length - 1) { const next = state.components.find(x => x.id === r.nodes[i + 1]); if (next) { const dx = next.x - c.x, dy = next.y - c.y; const len = Math.hypot(dx, dy) || 1; fx += dx / len; fy += dy / len; hasForce = true; } }
+                    }
+                }
+            });
+            if (hasForce && (fx !== 0 || fy !== 0)) { c.currentAutoRotation = Math.atan2(fy, fx) - Math.PI / 2; } else { c.currentAutoRotation = null; }
+        }
+    });
+    resolvePositions(); if (state.forceRecalculate) { calculateSystemStats(); state.forceRecalculate = false; }
+}
+
+function resolvePositions() {
+    let topAnchor = null; state.components.forEach(c => { if (c.type === 'anchor' || c.type === 'rigplate') { if (!topAnchor || c.y < topAnchor.y) topAnchor = c; } });
+    let anchorCx = 0; let anchorCy = -180; if (topAnchor) { anchorCx = topAnchor.x; anchorCy = topAnchor.y; }
+    state.components.forEach(c => {
+        if (c.id === state.draggingId && !state.hasMoved) return;
+        c.x = c.baseX; c.y = c.baseY;
+        if (c.type === 'load') { const dx = anchorCx - c.baseX; const dy = anchorCy - c.baseY; const d = Math.hypot(dx, dy) || 1; c.liftOffsetX = (dx / d) * state.currentLift; c.liftOffsetY = (dy / d) * state.currentLift; c.x = c.baseX + c.liftOffsetX; c.y = c.baseY + c.liftOffsetY; }
+    });
+    let changed = true, iter = 0;
+    while (changed && iter < 10) {
+        changed = false;
+        state.components.forEach(c => {
+            if (c.id === state.draggingId && !state.hasMoved) return;
+            if (c.type.startsWith('prusik') && c.ropeSegment) {
+                const r = state.ropes.find(x => x.id === c.ropeSegment.ropeId);
+                if (r) {
+                    const rNodes = getRopePositions(r);
+                    if (rNodes.length > c.ropeSegment.index + 1) {
+                        const p1 = rNodes[c.ropeSegment.index].pos; const p2 = rNodes[c.ropeSegment.index + 1].pos;
+                        if (c.ropeSegment.targetRatio === undefined) c.ropeSegment.targetRatio = c.ropeSegment.ratio;
+                        if (c.type === 'prusik_tractor' && state.isPullingHand) {
+                            const segmentLen = dist(p1, p2) || 1; const pullOffset = state.activePullDist / segmentLen; let startR = c.ropeSegment.startRatio !== undefined ? c.ropeSegment.startRatio : c.ropeSegment.ratio; c.ropeSegment.targetRatio = Math.max(0.05, Math.min(0.95, startR + pullOffset));
+                        }
+                        c.ropeSegment.ratio = lerp(c.ropeSegment.ratio, c.ropeSegment.targetRatio, 0.2); let visualRatio = c.ropeSegment.ratio; let tx = p1.x + (p2.x - p1.x) * visualRatio; let ty = p1.y + (p2.y - p1.y) * visualRatio;
+                        if (Math.abs(c.x - tx) > 0.5 || Math.abs(c.y - ty) > 0.5) { c.x = tx; c.y = ty; changed = true; }
+                    }
+                }
+            }
+            else if (c.attachedToId && !c.type.startsWith('prusik')) {
+                const parent = state.components.find(x => x.id === c.attachedToId);
+                if (parent) {
+                    const pPorts = parent.getRotatedPorts(); const cPorts = c.getRotatedPorts(); const pPort = pPorts.find(p => p.id === c.attachedPort) || pPorts[0]; const cPort = cPorts.find(p => p.id === c.myAttachedPort) || cPorts[0];
+                    const tx = parent.x + pPort.gx - cPort.gx; const ty = parent.y + pPort.gy - cPort.gy;
+                    if (Math.abs(c.x - tx) > 0.1 || Math.abs(c.y - ty) > 0.1) { c.x = tx; c.y = ty; changed = true; }
+                }
+            }
+        }); iter++;
+    }
+}
+
+function calculateSystemStats() {
+    let theoMA = 0; let realMA = 0; state.ropeTensions = []; state.componentTensions.clear();
+    if (state.ropes.length > 0) {
+        let lifters = []; const load = state.components.find(c => c.type === 'load');
+        if (load) { const lCarabiners = state.components.filter(c => c.attachedToId === load.id); lCarabiners.forEach(c => { lifters.push(c); state.components.filter(p => p.attachedToId === c.id).forEach(p => lifters.push(p)); }); }
+        state.ropes.forEach(rope => {
+            const nNodes = rope.nodes.length; if (nNodes < 2) return;
+            let theoT = new Array(nNodes - 1).fill(0); let realT = new Array(nNodes - 1).fill(0); theoT[nNodes - 2] = 1; realT[nNodes - 2] = 1;
+            for (let i = nNodes - 3; i >= 0; i--) {
+                theoT[i] = theoT[i + 1]; realT[i] = realT[i + 1] * 0.9;
+                state.components.filter(c => c.type === 'prusik_tractor' && c.ropeSegment?.ropeId === rope.id && c.ropeSegment?.index === i).forEach(prusik => {
+                    let pForceTheo = 0; let pForceReal = 0; const carabiner = state.components.find(c => c.attachedToId === prusik.id);
+                    if (carabiner) { const pulleys = state.components.filter(c => c.attachedToId === carabiner.id && c.type.startsWith('pulley')); pulleys.forEach(p => { for (let j = i + 1; j < nNodes - 1; j++) { if (rope.nodes[j] === p.id || rope.nodes[j + 1] === p.id) { pForceTheo += theoT[j]; pForceReal += realT[j]; } } }); }
+                    theoT[i] += pForceTheo; realT[i] += pForceReal;
+                });
+            }
+            lifters.forEach(lifter => { for (let j = 0; j < nNodes - 1; j++) { if (rope.nodes[j] === lifter.id || rope.nodes[j + 1] === lifter.id) { theoMA += theoT[j]; realMA += realT[j]; } } });
+            for (let i = 0; i < nNodes - 1; i++) state.ropeTensions.push({ index: i, theo: theoT[i], real: realT[i] });
+        });
+    }
+    state.theoMA = theoMA > 0 ? theoMA : 1; state.realMA = realMA > 0 ? realMA : 1; document.getElementById('uiTheoMA').textContent = `${state.theoMA}:1`; document.getElementById('uiRealMA').textContent = `${state.realMA.toFixed(1)}:1`;
+    const reqForce = state.loadWeight / state.realMA; document.getElementById('uiForce').textContent = `${reqForce.toFixed(1)} kgf`;
+}
+
+function drawRigPlate(ctx) { ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(-35, 0); ctx.bezierCurveTo(-35, -25, 35, -25, 35, 0); ctx.lineTo(45, 25); ctx.bezierCurveTo(45, 40, -45, 40, -45, 25); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(0, -20, 7, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(-25, 15, 6, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(0, 18, 6, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(25, 15, 6, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#b91c1c'; ctx.lineWidth = 2; ctx.stroke(); }
+function drawAnchor(ctx) { ctx.fillStyle = '#64748b'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.stroke(); }
+function drawCarabiner(ctx) { ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 5; ctx.beginPath(); ctx.roundRect(-10, -16, 20, 32, 10); ctx.stroke(); ctx.strokeStyle = '#94a3b8'; ctx.beginPath(); ctx.moveTo(10, -5); ctx.lineTo(10, 10); ctx.stroke(); ctx.fillStyle = '#475569'; ctx.fillRect(8, -2, 4, 6); }
+function drawPulley(ctx, isDouble) {
+    const color = isDouble ? '#eab308' : '#3b82f6'; const width = isDouble ? 20 : 14;
+    if (!isDouble) {
+        ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(-width, -15); ctx.lineTo(width, -15); ctx.lineTo(width - 4, 32); ctx.arc(0, 32, width - 4, 0, Math.PI); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(0, 5, 13, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(0, 5, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(0, -20, 5, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(0, 28, 5, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.5; ctx.stroke();
+    } else {
+        ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(-width, -15); ctx.lineTo(width, -15); ctx.lineTo(width - 4, 25); ctx.arc(0, 25, width - 4, 0, Math.PI); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(-7, 5, 12, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(7, 5, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(0, 5, 4, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(0, -20, 5, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(0, 25, 4, 0, Math.PI * 2); ctx.fill();
+    }
+}
+function drawLoad(ctx) {
+    ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, -35, 10, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#475569'; ctx.fillRect(-3, -25, 6, 8); ctx.fillStyle = '#f97316'; ctx.strokeStyle = '#c2410c'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.roundRect(-34, -18, 68, 56, 10); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#ea580c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(-30, -14, 60, 48, 6); ctx.stroke();
+    ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.roundRect(-24, -6, 48, 32, 6); ctx.fill();
+    ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(-16, 10, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 13px JetBrains Mono'; ctx.textAlign = 'center'; ctx.fillText(`${state.loadWeight}kg`, 6, 14);
+}
+function drawKnotEight(ctx) {
+    ctx.strokeStyle = '#34d399'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, -20); ctx.bezierCurveTo(20, -10, 20, 10, 0, 10); ctx.bezierCurveTo(-20, 10, -20, -10, 0, -10); ctx.bezierCurveTo(20, -10, 10, -25, 0, -25); ctx.stroke();
+    ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(0, 20, 6, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 20, 6, 0, Math.PI * 2); ctx.stroke();
+}
+function drawPrusik(ctx, component) {
+    const color = component.type === 'prusik_tractor' ? '#facc15' : '#ef4444';
+    ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(-12, -8 + i * 8); ctx.lineTo(12, -5 + i * 8); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(12, 5); ctx.bezierCurveTo(20, 15, 10, 25, 0, 28); ctx.stroke();
+    if (component.attachedToId) {
+        const parent = state.components.find(c => c.id === component.attachedToId);
+        if (parent) {
+            const rot = component.getTotalRotation(); const ex = 0; const ey = 35; const pRot = parent.getTotalRotation(); const pPort = parent.getLocalPorts().find(p => p.id === component.attachedPort) || parent.getLocalPorts()[0];
+            const pLocalGlobalX = pPort.x * Math.cos(pRot) - pPort.y * Math.sin(pRot); const pLocalGlobalY = pPort.x * Math.sin(pRot) + pPort.y * Math.cos(pRot);
+            const parentAbsX = parent.x + pLocalGlobalX; const parentAbsY = parent.y + pLocalGlobalY;
+            const prusikAbsX = component.x + ex * Math.cos(rot) - ey * Math.sin(rot); const prusikAbsY = component.y + ex * Math.sin(rot) + ey * Math.cos(rot);
+
+            ctx.save();
+            ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+            ctx.translate(state.camera.panX, state.camera.panY);
+            ctx.scale(state.camera.zoom, state.camera.zoom);
+
+            ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.setLineDash([4, 2]);
+            ctx.beginPath(); ctx.moveTo(prusikAbsX, prusikAbsY); ctx.lineTo(parentAbsX, parentAbsY); ctx.stroke();
+            ctx.restore();
+        }
+    }
+    ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(0, 35, 6, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.setLineDash([]); ctx.beginPath(); ctx.arc(0, 35, 6, 0, Math.PI * 2); ctx.stroke();
+}
+function drawGrid(ctx) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)'; ctx.lineWidth = 1; const size = 40;
+    const worldLeft = -state.camera.panX / state.camera.zoom; const worldTop = -state.camera.panY / state.camera.zoom; const worldRight = worldLeft + (state.width / state.camera.zoom); const worldBottom = worldTop + (state.height / state.camera.zoom);
+    const startX = Math.floor(worldLeft / size) * size; const startY = Math.floor(worldTop / size) * size;
+    for (let x = startX; x <= worldRight; x += size) { ctx.beginPath(); ctx.moveTo(x, worldTop); ctx.lineTo(x, worldBottom); ctx.stroke(); }
+    for (let y = startY; y <= worldBottom; y += size) { ctx.beginPath(); ctx.moveTo(worldLeft, y); ctx.lineTo(worldRight, y); ctx.stroke(); }
+}
+
+function loop() {
+    if (!simulatorRunning) return;
+    updatePhysics();
+    canvas.width = state.width * window.devicePixelRatio; canvas.height = state.height * window.devicePixelRatio;
+    ctx.save(); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.translate(state.camera.panX, state.camera.panY); ctx.scale(state.camera.zoom, state.camera.zoom);
+    drawGrid(ctx); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+    state.ropes.forEach(r => {
+        if (r.nodes.length < 2) return; const rNodes = getRopePositions(r);
+        if (r.id === state.selectedRopeId) { ctx.beginPath(); ctx.moveTo(rNodes[0].pos.x, rNodes[0].pos.y); for (let i = 1; i < rNodes.length; i++) ctx.lineTo(rNodes[i].pos.x, rNodes[i].pos.y); ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)'; ctx.lineWidth = 12; ctx.stroke(); }
+        ctx.lineWidth = 6; ctx.strokeStyle = '#f97316'; ctx.beginPath(); ctx.moveTo(rNodes[0].pos.x, rNodes[0].pos.y); for (let i = 1; i < rNodes.length; i++) ctx.lineTo(rNodes[i].pos.x, rNodes[i].pos.y); ctx.stroke();
+        ctx.strokeStyle = '#000000'; ctx.lineWidth = 2; ctx.setLineDash([4, 6]); ctx.stroke(); ctx.setLineDash([]);
+        if (state.showTMethod) {
+            for (let i = 0; i < rNodes.length - 1; i++) {
+                const mx = (rNodes[i].pos.x + rNodes[i + 1].pos.x) / 2; const my = (rNodes[i].pos.y + rNodes[i + 1].pos.y) / 2; const tData = state.ropeTensions.find(t => t.index === i);
+                if (tData) { ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; ctx.beginPath(); ctx.roundRect(mx - 15, my - 10, 30, 20, 4); ctx.fill(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1; ctx.stroke(); ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px JetBrains Mono'; ctx.textAlign = 'center'; ctx.fillText(`${tData.theo}T`, mx, my + 4); }
+            }
+        }
+    });
+    if (state.tool === 'rope' && state.ropePath.length > 0) {
+        let counts = {}; ctx.beginPath();
+        for (let i = 0; i < state.ropePath.length; i++) { const c = state.components.find(x => x.id === state.ropePath[i]); if (c) { let pass = counts[c.id] || 0; counts[c.id] = pass + 1; const pos = getNodePos(c, pass); if (i === 0) ctx.moveTo(pos.x, pos.y); else ctx.lineTo(pos.x, pos.y); } }
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.5)'; ctx.lineWidth = 6; ctx.stroke();
+    }
+    if (state.draggingId && state.tool === 'select' && state.hasMoved) {
+        if (state.hoverSnap) { ctx.beginPath(); ctx.arc(state.hoverSnap.gx, state.hoverSnap.gy, 12, 0, Math.PI * 2); ctx.fillStyle = 'rgba(56, 189, 248, 0.4)'; ctx.fill(); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2; ctx.stroke(); }
+        if (state.hoverRopeSnap) { ctx.beginPath(); ctx.arc(state.hoverRopeSnap.projX, state.hoverRopeSnap.projY, 12, 0, Math.PI * 2); ctx.fillStyle = 'rgba(56, 189, 248, 0.4)'; ctx.fill(); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2; ctx.stroke(); }
+    }
+    state.components.forEach(c => {
+        ctx.save(); ctx.translate(c.x, c.y); if (c.type !== 'hand' && c.type !== 'load') ctx.rotate(c.getTotalRotation());
+        if (c.id === state.selectedId && c.type !== 'hand' && c.type !== 'load') {
+            ctx.beginPath(); ctx.arc(0, 0, 45, 0, Math.PI * 2); ctx.fillStyle = 'rgba(16, 185, 129, 0.05)'; ctx.fill(); ctx.strokeStyle = '#10b981'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(0, -45); ctx.lineTo(0, -60); ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2; ctx.stroke(); ctx.beginPath(); ctx.arc(0, -60, 6, 0, Math.PI * 2); ctx.fillStyle = '#059669'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+        }
+        switch (c.type) {
+            case 'rigplate': drawRigPlate(ctx); break; case 'anchor': drawAnchor(ctx); break; case 'carabiner': drawCarabiner(ctx); break;
+            case 'pulley_single': drawPulley(ctx, false); break; case 'pulley_double': drawPulley(ctx, true); break;
+            case 'knot_eight': drawKnotEight(ctx); break; case 'prusik_capture': case 'prusik_tractor': drawPrusik(ctx, c); break;
+            case 'load': drawLoad(ctx); break;
+            case 'hand': ctx.fillStyle = state.isPullingHand ? '#3b82f6' : '#94a3b8'; ctx.beginPath(); ctx.roundRect(-12, -10, 24, 20, 6); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '14px fa-solid'; ctx.textAlign = 'center'; ctx.fillText('\uf256', 0, 5); break;
+        } ctx.restore();
+    });
+    ctx.restore(); requestAnimationFrame(loop);
+}
+
+window.addEventListener('load', () => { resize(); });
+
+function startSimulator() {
+    document.getElementById('loginScreen').style.display = 'none';
+    const app = document.getElementById('appContainer');
+    app.classList.remove('hidden');
+    app.classList.add('flex');
+
+    simulatorRunning = true;
+    resize();
+    loadPreset3to1();
+    requestAnimationFrame(loop);
+    document.getElementById('mainCanvasContainer').focus();
+}

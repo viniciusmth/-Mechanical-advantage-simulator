@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Simulador de Vantagem Mecânica</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        rescue: {
+                            950: '#070a12', 900: '#0f172a', 800: '#1e293b', 700: '#334155',
+                            orange: '#f97316', red: '#ef4444', blue: '#3b82f6', gold: '#eab308', yellow: '#facc15'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>body{touch-action:none;-webkit-user-select:none;user-select:none;margin:0;overflow:hidden}canvas{cursor:crosshair;outline:none;width:100%;height:100%;display:block}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:0 0}::-webkit-scrollbar-thumb{background:#33415580;border-radius:2px}.tool-btn.active{color:#60a5fa;background:#3b82f633;border-color:#3b82f6;box-shadow:0 0 15px #3b82f633}.glass-panel{-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);background:#0f172ad9;border:1px solid #ffffff14}.comp-btn:hover{background:#ffffff0d;border-color:#ffffff26;transform:translateY(-1px)}.preset-btn:hover{background:#3b82f626;border-color:#3b82f64d}.loader{border:3px solid #3b82f633;border-left-color:#3b82f6;border-radius:50%;width:20px;height:20px;animation:1s linear infinite spin;display:none}@keyframes spin{0%{transform:rotate(0)}to{transform:rotate(360deg)}}</style>
+  <script type="module" crossorigin src="/assets/index-D5fTLkqJ.js"></script>
+</head>
+
+<body class="bg-rescue-950 text-slate-200 font-sans h-screen flex flex-col relative">
+
+    <div id="loginScreen" class="absolute inset-0 z-50 bg-[#070a12] flex items-center justify-center">
+        <div class="glass-panel p-8 rounded-2xl shadow-2xl max-w-sm w-full mx-4">
+            <div class="text-center mb-6">
+                <div
+                    class="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-rescue-orange flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20 text-2xl">
+                    <i class="fa-solid fa-truck-medical"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-wide text-white">Simulador de Vantagem Mecânica</h1>
+                <p class="text-[11px] text-slate-400 mt-1 uppercase tracking-widest">Acesso Autenticado</p>
+            </div>
+
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label
+                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">E-mail</label>
+                    <input type="email" id="email" required
+                        class="w-full bg-rescue-950/80 border border-rescue-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
+                </div>
+                <div>
+                    <label
+                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Senha</label>
+                    <input type="password" id="password" required
+                        class="w-full bg-rescue-950/80 border border-rescue-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
+                </div>
+
+                <div id="loginError"
+                    class="hidden text-[11px] text-red-400 bg-red-950/50 border border-red-500/30 rounded-xl p-3 text-center">
+                </div>
+
+                <button type="submit" id="loginBtn"
+                    class="w-full flex justify-center items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg shadow-blue-500/20 mt-2">
+                    <span id="btnText">Acessar Simulador</span>
+                    <div id="btnLoader" class="loader"></div>
+                </button>
+            </form>
+            <div
+                class="mt-5 text-center flex flex-col gap-1 text-[9px] text-slate-500 uppercase tracking-wider font-mono">
+                <span><i class="fa-solid fa-wand-magic-sparkles"></i> A PRÁTICA LEVA À PERFEIÇÃO</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="appContainer" class="hidden flex-col h-screen w-full">
+        <header
+            class="glass-panel border-b border-rescue-800 flex flex-col z-20 shrink-0 shadow-2xl relative pt-[env(safe-area-inset-top)]">
+            <div class="flex flex-wrap md:flex-nowrap items-center justify-between px-3 md:px-5 py-3 gap-3">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <button id="mobileMenuBtn"
+                        class="md:hidden p-2 bg-rescue-800/50 rounded-lg text-slate-300 hover:text-white transition">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-rescue-orange hidden md:flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20 text-lg shrink-0">
+                        <i class="fa-solid fa-truck-medical"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h1
+                            class="font-bold text-xs md:text-sm tracking-wide flex items-center gap-2 text-white truncate">
+                            Simulador VM <span
+                                class="hidden sm:inline-block text-[9px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-widest font-mono">Analytics</span>
+                        </h1>
+                        <p class="text-[10px] md:text-[11px] text-slate-400 truncate">Arraste p/ mover • <kbd
+                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[9px] md:text-[10px]">Scroll</kbd>
+                            Zoom • <kbd
+                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[9px] md:text-[10px]">DEL</kbd>
+                        </p>
+                    </div>
+                </div>
+
+                <div
+                    class="flex items-center gap-2 md:gap-4 text-sm font-mono bg-rescue-950/80 px-2 py-2 rounded-2xl border border-rescue-800/80 shadow-inner overflow-x-auto w-full md:w-auto shrink-0 scrollbar-hide">
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span
+                            class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">Carga</span>
+                        <input id="inputWeight" type="number" value="100"
+                            class="w-10 md:w-14 bg-transparent text-center text-white font-bold focus:outline-none focus:text-rescue-blue transition-colors text-xs md:text-sm">
+                    </div>
+                    <div class="w-px h-6 bg-rescue-800"></div>
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">MA
+                            Teó.</span>
+                        <span id="uiTheoMA" class="text-blue-400 font-bold text-xs md:text-sm">1:1</span>
+                    </div>
+                    <div class="w-px h-6 bg-rescue-800"></div>
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">MA
+                            Real</span>
+                        <span id="uiRealMA" class="text-rescue-orange font-bold text-xs md:text-sm">1.0:1</span>
+                    </div>
+                    <div class="w-px h-6 bg-rescue-800"></div>
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span
+                            class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">Tração</span>
+                        <span id="uiForce" class="text-red-400 font-bold text-xs md:text-sm">100.0</span>
+                    </div>
+                    <div class="w-px h-6 bg-rescue-800"></div>
+                    <div class="flex flex-col items-center px-1 md:px-2">
+                        <span
+                            class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">Trava</span>
+                        <span id="uiLock" class="text-red-500 font-bold text-sm md:text-base"><i
+                                class="fa-solid fa-unlock"></i></span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-1.5 md:gap-2.5 w-full md:w-auto justify-end overflow-x-auto shrink-0">
+                    <label
+                        class="flex items-center gap-1.5 cursor-pointer text-[10px] md:text-xs font-semibold bg-rescue-800/40 px-2 py-1 md:px-3 md:py-1.5 rounded-xl border border-rescue-700/60 hover:bg-rescue-800 transition shadow-sm whitespace-nowrap">
+                        <input type="checkbox" id="toggleTMethod"
+                            class="accent-rescue-blue w-3 h-3 md:w-3.5 md:h-3.5 rounded" checked>
+                        <span>Método-T</span>
+                    </label>
+                    <button id="btnResetStroke"
+                        class="px-2 py-1 md:px-3 md:py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] md:text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                        <i class="fa-solid fa-arrow-down-up-across-line"></i> Reset
+                    </button>
+                    <button id="btnSair"
+                        class="px-2 py-1 md:px-3 md:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] md:text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                        <i class="fa-solid fa-right-from-bracket"></i> Sair
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 flex overflow-hidden relative">
+            <div id="mobileOverlay" class="hidden md:hidden fixed inset-0 bg-black/60 z-40 transition-opacity"></div>
+
+            <aside id="sidebar"
+                class="fixed md:relative left-0 top-0 h-full w-72 md:w-80 glass-panel border-r border-rescue-800 flex flex-col z-50 shadow-2xl shrink-0 overflow-y-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+                <button id="closeMenuBtn"
+                    class="md:hidden absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 text-slate-400 hover:text-white bg-rescue-800/50 rounded-full w-8 h-8 flex items-center justify-center z-50">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+
+                <div class="p-4 pt-12 md:pt-4 border-b border-rescue-800/60">
+                    <div class="flex gap-1.5 mb-3 bg-rescue-950/60 p-1 rounded-xl border border-rescue-800/50">
+                        <button id="toolSelect"
+                            class="tool-btn active flex-1 py-1.5 text-xs font-semibold rounded-lg border border-transparent text-slate-300 transition flex items-center justify-center gap-1.5"
+                            data-tool="select">
+                            <i class="fa-solid fa-arrow-pointer"></i> Cursor
+                        </button>
+                        <button id="toolRope"
+                            class="tool-btn flex-1 py-1.5 text-xs font-semibold rounded-lg border border-transparent text-slate-300 transition flex items-center justify-center gap-1.5"
+                            data-tool="rope">
+                            <i class="fa-solid fa-route text-amber-400"></i> Corda
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btnClearRopes"
+                            class="py-2 text-[11px] font-bold rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 transition flex items-center justify-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-scissors"></i> Rem. Cordas
+                        </button>
+                        <button id="btnClear"
+                            class="py-2 text-[11px] font-bold rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition flex items-center justify-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-trash"></i> Limpar Tudo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4 border-b border-rescue-800/60 bg-rescue-900/30">
+                    <div
+                        class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Preset de Sistema
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <button
+                            class="preset-btn w-full py-2 px-3 rounded-xl bg-rescue-950 border border-rescue-800 text-xs font-bold text-slate-300 transition flex items-center justify-center gap-2 shadow-sm"
+                            data-preset="3:1">
+                            <i class="fa-solid fa-diagram-project text-blue-400"></i> Carregar Sistema 3:1 (Z-Rig)
+                        </button>
+                        <button
+                            class="preset-btn w-full py-2 px-3 rounded-xl bg-rescue-950 border border-rescue-800 text-xs font-bold text-slate-300 transition flex items-center justify-center gap-2 shadow-sm"
+                            data-preset="5:1">
+                            <i class="fa-solid fa-diagram-project text-blue-400"></i> Carregar Sistema 5:1
+                        </button>
+                        <button
+                            class="preset-btn w-full py-2 px-3 rounded-xl bg-rescue-950 border border-rescue-800 text-xs font-bold text-slate-300 transition flex items-center justify-center gap-2 shadow-sm"
+                            data-preset="6:1">
+                            <i class="fa-solid fa-diagram-project text-blue-400"></i> Carregar Sistema 6:1
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4 space-y-2 flex-1 pb-10">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-0.5">Equipamentos
+                        Individuais</div>
+
+                    <button
+                        class="comp-btn w-full flex items-center gap-3 p-2.5 rounded-xl bg-rescue-950/60 border border-rescue-800/80 text-left transition group shadow-sm"
+                        data-type="rigplate">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-rescue-red border border-red-500/20">
+                            <i class="fa-solid fa-paw text-xs"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-red transition-colors">
+                            Placa Multi-Furos</div>
+                    </button>
+                    <button
+                        class="comp-btn w-full flex items-center gap-3 p-2.5 rounded-xl bg-rescue-950/60 border border-rescue-800/80 text-left transition group shadow-sm"
+                        data-type="anchor">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
+                            <i class="fa-solid fa-thumbtack text-xs"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
+                            Ancoragem Simples</div>
+                    </button>
+                    <button
+                        class="comp-btn w-full flex items-center gap-3 p-2.5 rounded-xl bg-rescue-950/60 border border-rescue-800/80 text-left transition group shadow-sm"
+                        data-type="carabiner">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
+                            <i class="fa-solid fa-link text-xs"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-slate-100 transition-colors">
+                            Mosquetão</div>
+                    </button>
+                    <button
+                        class="comp-btn w-full flex items-center gap-3 p-2.5 rounded-xl bg-rescue-950/60 border border-rescue-800/80 text-left transition group shadow-sm"
+                        data-type="pulley_single">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-rescue-blue border border-blue-500/20">
+                            <i class="fa-solid fa-circle-notch text-xs"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-blue transition-colors">
+                            Polia Simples (A/B)</div>
+                    </button>
+                    <button
+                        class="comp-btn w-full flex items-center gap-3 p-2.5 rounded-xl bg-rescue-950/60 border border-rescue-800/80 text-left transition group shadow-sm"
+                        data-type="pulley_double">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-rescue-gold border border-amber-500/20">
+                            <i class="fa-solid fa-circle-notch text-xs"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-gold transition-colors">
+                            Polia Dupla</div>
+                    </button>
+                    <button
+                        class="comp-btn w-full flex items-center gap-3 p-2.5 rounded-xl bg-rescue-950/60 border border-rescue-800/80 text-left transition group shadow-sm"
+                        data-type="prusik_capture">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-rescue-red border border-red-500/20">
+                            <i class="fa-solid fa-grip-lines text-xs"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-red transition-colors">
+                            Prusik (Captura)</div>
+                    </button>
+                    <button
+                        class="comp-btn w-full flex items-center gap-3 p-2.5 rounded-xl bg-rescue-950/60 border border-rescue-800/80 text-left transition group shadow-sm"
+                        data-type="prusik_tractor">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-rescue-yellow border border-amber-500/20">
+                            <i class="fa-solid fa-arrows-up-down text-xs"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-yellow transition-colors">
+                            Prusik (Reset/Móvel)</div>
+                    </button>
+                    <button
+                        class="comp-btn w-full flex items-center gap-3 p-2.5 rounded-xl bg-rescue-950/60 border border-rescue-800/80 text-left transition group shadow-sm"
+                        data-type="knot_eight">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                            <i class="fa-solid fa-infinity text-xs"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-emerald-400 transition-colors">Nó
+                            Oito (Terminação)</div>
+                    </button>
+                    <button
+                        class="comp-btn w-full flex items-center gap-3 p-2.5 rounded-xl bg-rescue-950/60 border border-rescue-800/80 text-left transition group shadow-sm"
+                        data-type="load">
+                        <div
+                            class="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center text-rescue-orange border border-orange-500/20">
+                            <i class="fa-solid fa-weight-hanging text-xs"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-rescue-orange transition-colors">
+                            Carga (Peso)</div>
+                    </button>
+                </div>
+            </aside>
+
+            <main tabindex="0" class="flex-1 relative outline-none bg-[#070a12]" id="mainCanvasContainer">
+                <canvas id="simCanvas"></canvas>
+                <div id="statusToast"
+                    class="absolute top-[calc(1.5rem+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 bg-rescue-900/95 text-emerald-400 px-6 py-2.5 rounded-2xl text-xs font-bold border border-emerald-500/30 backdrop-blur-md pointer-events-none transition-opacity opacity-0 shadow-2xl z-50">
+                    Pronto</div>
+
+                <div
+                    class="absolute left-6 flex flex-col gap-3 z-20 md:hidden bottom-[calc(1.5rem+env(safe-area-inset-bottom))]">
+                    <button id="btnDeleteMobile"
+                        class="w-12 h-12 rounded-full bg-red-900/90 hover:bg-red-800 text-white border border-red-700 backdrop-blur-md shadow-lg flex items-center justify-center text-xl transition-colors"><i
+                            class="fa-solid fa-trash-can"></i></button>
+                </div>
+
+                <div
+                    class="absolute right-6 flex flex-col gap-3 z-20 bottom-[calc(1.5rem+env(safe-area-inset-bottom))]">
+                    <button id="btnZoomIn"
+                        class="w-12 h-12 rounded-full bg-rescue-800/90 hover:bg-rescue-700 text-white border border-rescue-700 backdrop-blur-md shadow-lg flex items-center justify-center text-xl transition-colors"><i
+                            class="fa-solid fa-plus"></i></button>
+                    <button id="btnZoomOut"
+                        class="w-12 h-12 rounded-full bg-rescue-800/90 hover:bg-rescue-700 text-white border border-rescue-700 backdrop-blur-md shadow-lg flex items-center justify-center text-xl transition-colors"><i
+                            class="fa-solid fa-minus"></i></button>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>
