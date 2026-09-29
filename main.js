@@ -36,6 +36,17 @@ async function getDeviceFingerprint() {
     return result.visitorId;
 }
 
+let isRegisterMode = false;
+
+document.getElementById('toggleModeBtn').addEventListener('click', () => {
+    isRegisterMode = !isRegisterMode;
+    document.getElementById('nameField').classList.toggle('hidden', !isRegisterMode);
+    document.getElementById('name').required = isRegisterMode;
+
+    document.getElementById('btnText').textContent = isRegisterMode ? 'Registrar e Pagar' : 'Acessar Simulador';
+    document.getElementById('toggleModeBtn').innerHTML = isRegisterMode ? 'Já tem uma conta? <b>Entrar</b>' : 'Não tem uma conta? <b>Registre-se e Assine</b>';
+});
+
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     setFormState(true);
@@ -43,11 +54,54 @@ loginForm.addEventListener('submit', async (e) => {
 
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
+    const name = document.getElementById('name').value;
 
     try {
-        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (authError) throw new Error("E-mail ou senha incorretos.");
-        const user = authData.user;
+        let user;
+
+        if (isRegisterMode) {
+            // 1. Criar a conta
+            const { data: authData, error: signUpError } = await supabaseClient.auth.signUp({
+                email,
+                password,
+                options: { data: { name: name } }
+            });
+            if (signUpError) throw new Error("Erro ao criar conta: " + signUpError.message);
+            user = authData.user;
+
+            showToast("Gerando ambiente de pagamento...", false);
+
+            // Chama a Edge Function que criamos
+            const { data: funcData, error: funcError } = await supabaseClient.functions.invoke('create-checkout', {
+                body: { user_id: user.id, email: email, name: name }
+            });
+
+            if (funcError || !funcData?.init_point) {
+                await supabaseClient.auth.signOut();
+                throw new Error("Erro ao gerar link de pagamento.");
+            }
+
+            // Redireciona o usuário para pagar no Mercado Pago
+            window.location.href = funcData.init_point;
+            return;
+        } else {
+            // 2. Fazer Login
+            const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (authError) throw new Error("E-mail ou senha incorretos.");
+            user = authData.user;
+
+            // 3. Verificar se o pagamento foi confirmado
+            const { data: profile, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('is_active')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError || !profile?.is_active) {
+                await supabaseClient.auth.signOut();
+                throw new Error("Pagamento pendente. Verifique seu e-mail ou realize o pagamento.");
+            }
+        }
 
         const deviceId = await getDeviceFingerprint();
 
@@ -116,6 +170,14 @@ window.addEventListener('DOMContentLoaded', async () => {
     const { data } = await supabaseClient.auth.getSession();
     if (data.session) {
         const user = data.session.user;
+
+        // NOVO: Verifica status do pagamento ao recarregar a página
+        const { data: profile } = await supabaseClient.from('profiles').select('is_active').eq('id', user.id).single();
+        if (!profile || !profile.is_active) {
+            await supabaseClient.auth.signOut();
+            return; // Impede o login se não estiver pago
+        }
+
         const localToken = localStorage.getItem('sim_vm_session_token');
 
         if (localToken) {

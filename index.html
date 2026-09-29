@@ -146,6 +146,12 @@
             </div>
 
             <form id="loginForm" class="space-y-4">
+                <div id="nameField" class="hidden">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nome
+                        Completo</label>
+                    <input type="text" id="name"
+                        class="w-full bg-rescue-950/80 border border-rescue-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
+                </div>
                 <div>
                     <label
                         class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">E-mail</label>
@@ -168,6 +174,13 @@
                     <span id="btnText">Acessar Simulador</span>
                     <div id="btnLoader" class="loader"></div>
                 </button>
+
+                <div class="text-center mt-4">
+                    <button type="button" id="toggleModeBtn"
+                        class="text-xs text-blue-400 hover:text-blue-300 transition">
+                        Não tem uma conta? <b>Registre-se e Assine</b>
+                    </button>
+                </div>
             </form>
             <div
                 class="mt-5 text-center flex flex-col gap-1 text-[9px] text-slate-500 uppercase tracking-wider font-mono">
