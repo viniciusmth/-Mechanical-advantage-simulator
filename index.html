@@ -191,91 +191,115 @@
 
     <div id="appContainer" class="hidden flex-col h-[100dvh] w-full">
         <header class="glass-panel border-b border-rescue-800 flex flex-col z-20 shrink-0 shadow-2xl relative safe-pt">
-            <div class="flex flex-wrap md:flex-nowrap items-center justify-between px-3 md:px-5 py-3 gap-3">
-                <div class="flex items-center gap-3 w-full md:w-auto">
+            <div class="flex flex-wrap lg:flex-nowrap items-center justify-between px-3 lg:px-5 py-3 gap-3">
+
+                <!-- 1. TÍTULO E LOGO (Esquerda) -->
+                <div class="flex items-center gap-3 w-full lg:w-auto shrink-0">
                     <button id="mobileMenuBtn"
-                        class="md:hidden p-2 bg-rescue-800/50 rounded-lg text-slate-300 hover:text-white transition">
+                        class="lg:hidden p-2 bg-rescue-800/50 rounded-lg text-slate-300 hover:text-white transition">
                         <i class="fa-solid fa-bars text-xl"></i>
                     </button>
                     <div
-                        class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-rescue-orange hidden md:flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20 text-lg shrink-0">
+                        class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-rescue-orange hidden lg:flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20 text-lg shrink-0">
                         <i class="fa-solid fa-truck-medical"></i>
                     </div>
                     <div class="flex-1">
                         <h1
-                            class="font-bold text-xs md:text-sm tracking-wide flex items-center gap-2 text-white truncate">
+                            class="font-bold text-xs lg:text-sm tracking-wide flex items-center gap-2 text-white truncate">
                             Simulador VM <span
                                 class="hidden sm:inline-block text-[9px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-widest font-mono">Analytics</span>
                         </h1>
-                        <p class="text-[10px] md:text-[11px] text-slate-400 truncate">Arraste p/ mover • <kbd
-                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[9px] md:text-[10px]">Scroll</kbd>
+                        <p class="text-[10px] lg:text-[11px] text-slate-400 truncate">Arraste p/ mover • <kbd
+                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[9px] lg:text-[10px]">Scroll</kbd>
                             Zoom • <kbd
-                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[9px] md:text-[10px]">DEL</kbd>
+                                class="bg-rescue-800 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[9px] lg:text-[10px]">DEL</kbd>
                         </p>
                     </div>
                 </div>
 
+                <!-- 2. BARRA DE ESTATÍSTICAS (Centro - Expande com flex-1) -->
                 <div
-                    class="flex items-center gap-2 md:gap-4 text-sm font-mono bg-rescue-950/80 px-2 py-2 rounded-2xl border border-rescue-800/80 shadow-inner overflow-x-auto w-full md:w-auto shrink-0 scrollbar-hide">
-                    <div class="flex flex-col items-center px-1 md:px-2">
+                    class="flex items-center justify-between flex-1 max-w-4xl text-sm font-mono bg-rescue-950/80 px-2 lg:px-6 py-2.5 rounded-2xl border border-rescue-800/80 shadow-inner overflow-x-auto scrollbar-hide">
+
+                    <div class="flex flex-col items-center flex-1 px-1">
                         <span
-                            class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">Carga</span>
+                            class="text-slate-500 text-[9px] lg:text-[10px] uppercase tracking-wider font-sans whitespace-nowrap">Carga</span>
                         <input id="inputWeight" type="number" value="100"
-                            class="w-10 md:w-14 bg-transparent text-center text-white font-bold focus:outline-none focus:text-rescue-blue transition-colors text-xs md:text-sm">
+                            class="w-full max-w-[60px] bg-transparent text-center text-white font-bold focus:outline-none focus:text-rescue-blue transition-colors text-xs lg:text-sm">
                     </div>
-                    <div class="w-px h-6 bg-rescue-800"></div>
-                    <div class="flex flex-col items-center px-1 md:px-2">
-                        <span class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">MA
+
+                    <div class="w-px h-8 bg-rescue-800 shrink-0"></div>
+
+                    <div class="flex flex-col items-center flex-1 px-1">
+                        <span
+                            class="text-slate-500 text-[9px] lg:text-[10px] uppercase tracking-wider font-sans whitespace-nowrap">MA
                             Teó.</span>
-                        <span id="uiTheoMA" class="text-blue-400 font-bold text-xs md:text-sm">1:1</span>
+                        <span id="uiTheoMA"
+                            class="text-blue-400 font-bold text-xs lg:text-sm whitespace-nowrap">1:1</span>
                     </div>
-                    <div class="w-px h-6 bg-rescue-800"></div>
-                    <div class="flex flex-col items-center px-1 md:px-2">
-                        <span class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">MA
+
+                    <div class="w-px h-8 bg-rescue-800 shrink-0"></div>
+
+                    <div class="flex flex-col items-center flex-1 px-1">
+                        <span
+                            class="text-slate-500 text-[9px] lg:text-[10px] uppercase tracking-wider font-sans whitespace-nowrap">MA
                             Real</span>
-                        <span id="uiRealMA" class="text-rescue-orange font-bold text-xs md:text-sm">1.0:1</span>
+                        <span id="uiRealMA"
+                            class="text-rescue-orange font-bold text-xs lg:text-sm whitespace-nowrap">1.0:1</span>
                     </div>
-                    <div class="w-px h-6 bg-rescue-800"></div>
-                    <div class="flex flex-col items-center px-1 md:px-2">
+
+                    <div class="w-px h-8 bg-rescue-800 shrink-0"></div>
+
+                    <div class="flex flex-col items-center flex-1 px-1">
                         <span
-                            class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">Tração</span>
-                        <span id="uiForce" class="text-red-400 font-bold text-xs md:text-sm">100.0</span>
+                            class="text-slate-500 text-[9px] lg:text-[10px] uppercase tracking-wider font-sans whitespace-nowrap">Tração</span>
+                        <span id="uiForce"
+                            class="text-red-400 font-bold text-xs lg:text-sm whitespace-nowrap">100.0</span>
                     </div>
-                    <div class="w-px h-6 bg-rescue-800"></div>
-                    <div class="flex flex-col items-center px-1 md:px-2">
+
+                    <div class="w-px h-8 bg-rescue-800 shrink-0"></div>
+
+                    <div class="flex flex-col items-center flex-1 px-1">
                         <span
-                            class="text-slate-500 text-[9px] md:text-[10px] uppercase tracking-wider font-sans">Trava</span>
-                        <span id="uiLock" class="text-red-500 font-bold text-sm md:text-base"><i
+                            class="text-slate-500 text-[9px] lg:text-[10px] uppercase tracking-wider font-sans whitespace-nowrap">Trava</span>
+                        <span id="uiLock" class="text-red-500 font-bold text-sm lg:text-base"><i
                                 class="fa-solid fa-unlock"></i></span>
                     </div>
+
                 </div>
 
-                <div class="flex items-center gap-1.5 md:gap-2.5 w-full md:w-auto justify-end overflow-x-auto shrink-0">
+                <!-- 3. BOTÕES DE AÇÃO (Direita) -->
+                <div class="flex items-center gap-1.5 lg:gap-2.5 w-full lg:w-auto justify-end overflow-x-auto shrink-0">
                     <label
-                        class="flex items-center gap-1.5 cursor-pointer text-[10px] md:text-xs font-semibold bg-rescue-800/40 px-2 py-1 md:px-3 md:py-1.5 rounded-xl border border-rescue-700/60 hover:bg-rescue-800 transition shadow-sm whitespace-nowrap">
+                        class="flex items-center gap-1.5 cursor-pointer text-[10px] lg:text-xs font-semibold bg-rescue-800/40 px-2 py-1 lg:px-3 lg:py-1.5 rounded-xl border border-rescue-700/60 hover:bg-rescue-800 transition shadow-sm whitespace-nowrap">
                         <input type="checkbox" id="toggleTMethod"
-                            class="accent-rescue-blue w-3 h-3 md:w-3.5 md:h-3.5 rounded" checked>
+                            class="accent-rescue-blue w-3 h-3 lg:w-3.5 lg:h-3.5 rounded" checked>
                         <span>Método-T</span>
                     </label>
                     <button id="btnResetStroke"
-                        class="px-2 py-1 md:px-3 md:py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] md:text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                        class="px-2 py-1 lg:px-3 lg:py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] lg:text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
                         <i class="fa-solid fa-arrow-down-up-across-line"></i> Reset
                     </button>
                     <button id="btnSair"
-                        class="px-2 py-1 md:px-3 md:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] md:text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                        class="px-2 py-1 lg:px-3 lg:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] lg:text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
                         <i class="fa-solid fa-right-from-bracket"></i> Sair
                     </button>
                 </div>
+
             </div>
         </header>
 
         <div class="flex-1 flex overflow-hidden relative">
-            <div id="mobileOverlay" class="hidden md:hidden fixed inset-0 bg-black/60 z-40 transition-opacity"></div>
+            <!-- Mudou md:hidden para lg:hidden -->
+            <div id="mobileOverlay" class="hidden lg:hidden fixed inset-0 bg-black/60 z-40 transition-opacity"></div>
 
+            <!-- Mudou de md: para lg: -->
             <aside id="sidebar"
-                class="fixed md:relative left-0 top-0 h-full w-72 md:w-80 glass-panel border-r border-rescue-800 flex flex-col z-50 shadow-2xl shrink-0 overflow-y-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 safe-pt safe-pb">
+                class="fixed lg:relative left-0 top-0 h-full w-72 lg:w-80 glass-panel border-r border-rescue-800 flex flex-col z-50 shadow-2xl shrink-0 overflow-y-auto transform -translate-x-full lg:translate-x-0 transition-transform duration-300 safe-pt safe-pb">
+
+                <!-- Mudou de md: para lg: -->
                 <button id="closeMenuBtn"
-                    class="md:hidden absolute safe-btn-top right-4 text-slate-400 hover:text-white bg-rescue-800/50 rounded-full w-8 h-8 flex items-center justify-center z-50">
+                    class="lg:hidden absolute safe-btn-top right-4 text-slate-400 hover:text-white bg-rescue-800/50 rounded-full w-8 h-8 flex items-center justify-center z-50">
                     <i class="fa-solid fa-times"></i>
                 </button>
 
@@ -432,7 +456,7 @@
                     class="absolute safe-toast left-1/2 -translate-x-1/2 bg-rescue-900/95 text-emerald-400 px-6 py-2.5 rounded-2xl text-xs font-bold border border-emerald-500/30 backdrop-blur-md pointer-events-none transition-opacity opacity-0 shadow-2xl z-50">
                     Pronto</div>
 
-                <div class="absolute left-6 flex flex-col gap-3 z-20 md:hidden safe-btns">
+                <div class="absolute left-6 flex flex-col gap-3 z-20 lg:hidden safe-btns">
                     <button id="btnDeleteMobile"
                         class="w-12 h-12 rounded-full bg-red-900/90 hover:bg-red-800 text-white border border-red-700 backdrop-blur-md shadow-lg flex items-center justify-center text-xl transition-colors"><i
                             class="fa-solid fa-trash-can"></i></button>
